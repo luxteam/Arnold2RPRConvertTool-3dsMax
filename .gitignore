@@ -1,0 +1,5 @@
+tahoe.log
+cache/
+.mayaSwatches/
+*.pyc
+convertAI2RPR.py
