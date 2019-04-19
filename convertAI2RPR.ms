@@ -810,7 +810,7 @@ fn convertMaterial orig_mtl =(
 	cls=classof orig_mtl
 	local new_mtl=case cls of (
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
-		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl convertAiCarPaint
+		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl
 		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
