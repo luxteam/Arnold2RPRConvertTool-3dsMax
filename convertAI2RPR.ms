@@ -214,6 +214,76 @@ fn convertAiStandardSurface origMtl =(
 	r
 )
 
+fn convertAiLayerShader origMtl =(
+	r = RPR_Blend_Material()
+	r.name = origMtl.name + rprPostfixStr
+
+	materials = #()
+	if origMtl.enable1 do (
+		if origMtl.input1 != undefined do (
+			append materials origMtl.input1
+		)
+	)
+	if origMtl.enable2 do (
+		if origMtl.input2 != undefined do (
+			append materials #(origMtl.input2, origMtl.mix2, origMtl.mix2_shader)
+		)
+	)
+	if origMtl.enable3 do (
+		if origMtl.input3 != undefined do (
+			append materials #(origMtl.input3, origMtl.mix3, origMtl.mix3_shader)
+		)
+	)
+	if origMtl.enable4 do (
+		if origMtl.input4 != undefined do (
+			append materials #(origMtl.input4, origMtl.mix4, origMtl.mix4_shader)
+		)
+	)
+	if origMtl.enable5 do (
+		if origMtl.input5 != undefined do (
+			append materials #(origMtl.input5, origMtl.mix5, origMtl.mix5_shader)
+		)
+	)
+	if origMtl.enable6 do (
+		if origMtl.input6 != undefined do (
+			append materials #(origMtl.input6, origMtl.mix6, origMtl.mix6_shader)
+		)
+	)
+	if origMtl.enable7 do (
+		if origMtl.input7 != undefined do (
+			append materials #(origMtl.input7, origMtl.mix7, origMtl.mix7_shader)
+		)
+	)
+	if origMtl.enable8 do (
+		if origMtl.input8 != undefined do (
+			append materials #(origMtl.input8, origMtl.mix8, origMtl.mix8_shader)
+		)
+	)
+
+	r.material1 = materials[1]
+	deleteItem materials 1
+
+	-- materials conversion
+	first_material = true
+	for mat in materials do (
+		if first_material then (
+			r.material2 = mat[1]
+			r.weight = mat[2]
+			r.weightMap = mat[3]
+			first_material = false
+		) else (
+			old_r = r
+			r = RPR_Blend_Material()
+			r.material1 = old_r
+			r.material2 = mat[1]
+			r.weight = mat[2]
+			r.weightMap = mat[3]
+		)		
+	)
+	
+	r
+)
+
 /* 
     UTILITIES
 */
@@ -293,6 +363,28 @@ fn convertAiAbs origMap =(
 	r.operator = 17
 	r.Color1 = origMap.input
 	r.color0texmap = origMap.input_shader
+
+	r
+)
+
+fn convertAiExp origMap =(
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	e = 2.718
+	base_color = #(remap_value origMap.input.red 255 0 1 0, remap_value origMap.input.green 255 0 1 0, remap_value origMap.input.blue 255 0 1 0)
+	exp_color = #(2.718^base_color[1], 2.718^base_color[2], 2.718^base_color[1])
+	for i=1 to exp_color.count do(
+		if exp_color[i]>1 then(
+			exp_color[i] = 255
+		) else (
+			exp_color[i] = remap_value exp_color[i] 1 0 255 0
+		)
+	)
+
+	r.operator = 0
+	r.Color1 = color exp_color[1] exp_color[2] exp_color[3]
+	r.Color2 = color 255 255 255
 
 	r
 )
@@ -563,6 +655,7 @@ fn convertUtility orig_map =(
 		ai_bump3d: errorCatching convertAiBump3d orig_map
 		ai_normal_map: errorCatching convertAiNormalMap orig_map
 		ai_vector_map: errorCatching convertAiVectorMap orig_map
+		ai_exp: errorCatching convertAiExp orig_map
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_map
@@ -581,7 +674,6 @@ fn convertUtility orig_map =(
 		ai_physical_sky: errorCatching convertUnsupportedUtility orig_map
 		ai_compare: errorCatching convertUnsupportedUtility orig_map
 		ai_complement: errorCatching convertUnsupportedUtility orig_map
-		ai_exp: errorCatching convertUnsupportedUtility orig_map
 		ai_fraction: errorCatching convertUnsupportedUtility orig_map
 		ai_is_finite: errorCatching convertUnsupportedUtility orig_map
 		ai_length: errorCatching convertUnsupportedUtility orig_map
@@ -675,11 +767,11 @@ fn convertMaterial orig_mtl =(
 	cls=classof orig_mtl
 	local new_mtl=case cls of (
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
+		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl 
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
 		ai_car_paint: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_lambert: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_layer_shader: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_matte: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_hair: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_two_sided: errorCatching convertUnsupportedMtl orig_mtl 
