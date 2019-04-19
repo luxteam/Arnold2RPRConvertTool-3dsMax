@@ -214,6 +214,49 @@ fn convertAiStandardSurface origMtl =(
 	r
 )
 
+fn convertAiCarPaint origMtl =(
+	r = RPR_Uber_Material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- diffuse
+	if origMtl.base > 0 do ( r.DiffuseEnable = true )
+	r.DiffuseColor = origMtl.base_color
+	r.DiffuseColorTexmap = origMtl.base_color_shader
+	r.DiffuseWeight = origMtl.base
+	r.DiffuseWeightTexmap = origMtl.base_shader
+	r.DiffuseRoughness = origMtl.base_roughness
+	r.DiffuseRoughnessTexmap = origMtl.base_roughness_shader
+	
+	-- reflection
+	if origMtl.specular > 0 do ( r.reflectionEnable = true )
+	r.reflectionColor = origMtl.specular_color
+	r.reflectionColorTexmap = origMtl.specular_color_shader
+	r.reflectionWeight = origMtl.specular
+	r.ReflectionWeightTexmap = origMtl.specular_shader
+	r.reflectionRoughness = origMtl.specular_roughness
+	r.reflectionRoughnessTexmap = origMtl.specular_roughness_shader
+	r.reflectionIor = origMtl.specular_IOR
+	r.reflectionIorTexmap = origMtl.specular_IOR_shader
+
+	-- coat
+	if origMtl.coat > 0 do ( r.CoatingEnable = true )
+	r.CoatingWeight = origMtl.coat
+	r.CoatingWeightTexmap = origMtl.coat_shader
+	r.CoatingColor = origMtl.coat_color
+	r.CoatingColorTexmap = origMtl.coat_color_shader
+	r.CoatingRoughness = origMtl.coat_roughness
+	r.CoatingRoughnessTexmap = origMtl.coat_roughness_shader
+	r.CoatingIor = origMtl.coat_IOR
+	r.CoatingIorTexmap = origMtl.coat_IOR_shader
+
+	if origMtl.coat_normal_shader != undefined do (
+		r.normalEnable = true
+		r.normalTexmap = origMtl.coat_normal_shader
+	)
+
+	r
+)
+
 fn convertAiLayerShader origMtl =(
 	r = RPR_Blend_Material()
 	r.name = origMtl.name + rprPostfixStr
@@ -767,10 +810,10 @@ fn convertMaterial orig_mtl =(
 	cls=classof orig_mtl
 	local new_mtl=case cls of (
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
-		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl 
+		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl convertAiCarPaint
+		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
-		ai_car_paint: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_lambert: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_matte: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_hair: errorCatching convertUnsupportedMtl orig_mtl 
