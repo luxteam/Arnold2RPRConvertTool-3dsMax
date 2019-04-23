@@ -661,27 +661,40 @@ fn convertPhysicalLight origLight = (
 	origLight.name += rprPostfixStr
 
 	r.isEnabled = origLight.on 
+	r.isTargeted = origLight.targeted 
+	r.DistanceToTarget = origLight.targdist 
+
 	light_type = origLight.shapeType
 
 	if light_type == 0 then ( -- point
 		r.lightType = 2
+		r.LightIntensity = (0.334 * origLight.intensity * 2.0^origLight.exposure) / 0.8696
 	) else if light_type == 1 then ( -- directional
 		r.lightType = 3
+		r.LightIntensity = origLight.intensity * 2.0^origLight.exposure 
 	) else if light_type == 2 then ( -- spot
 		r.lightType = 1
+		r.LightIntensity = origLight.intensity * 2.0^origLight.exposure 
 	) else ( -- area
 		r.lightType = 0
+		r.LightIntensity = origLight.intensity * 2.0^origLight.exposure 
 
 		if light_type == 3 do ( -- rect / quad
 			r.areaShape = 3
+			r.areaWidths = origLight.quadX
+			r.areaLength = origLight.quadY
 		)
 
 		if light_type == 4 do ( -- disc
 			r.areaShape = 0
+			r.areaWidths = origLight.lightRadius * 2
 		)
 
 		if light_type == 5 do ( -- cylinder
 			r.areaShape = 1
+			r.areaWidths = origLight.lightRadius * 2
+			r.areaWidths = origLight.height
+
 		)
 
 		if light_type == 8 do ( -- mesh
@@ -695,7 +708,7 @@ fn convertPhysicalLight origLight = (
 	) else (
 		r.ColourMode = 1
 	)
-	r.LightIntensity = origLight.intensity / 160.0 * 2.0^origLight.exposure 
+
 	r.ColourPicker = origLight.color
 	r.temperature = origLight.kelvin
 
