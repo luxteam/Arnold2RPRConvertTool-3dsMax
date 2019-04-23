@@ -186,7 +186,10 @@ fn convertAiStandardSurface origMtl =(
 	r.CoatingRoughnessTexmap = origMtl.coat_roughness_shader
 	r.CoatingIor = origMtl.coat_IOR
 	r.CoatingIorTexmap = origMtl.coat_IOR_shader
-	r.CoatingNormalTexmap = origMtl.coat_normal_shader
+	if origMtl.coat_normal_shader != undefined do (
+		r.CoatingUseShaderNormal = false
+		r.CoatingNormalTexmap = origMtl.coat_normal_shader
+	)
 	r.CoatingThickness = 1.5
 
 	-- emission
@@ -212,6 +215,7 @@ fn convertAiStandardSurface origMtl =(
 	)
 
 	if origMtl.normal_shader != undefined do (
+		r.CoatingUseShaderNormal = false
 		r.normalEnable = true
 		r.normalTexmap = origMtl.normal_shader
 	)
