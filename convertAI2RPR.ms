@@ -361,6 +361,18 @@ fn convertAiLayerShader origMtl =(
 	r
 )
 
+fn convertAiMixShader origMtl =(
+	r = RPR_Blend_Material()
+	r.name = origMtl.name + rprPostfixStr
+
+	r.material1 = origMtl.shader1
+	r.material2 = origMtl.shader2
+	r.weight = origMtl.mix
+	r.weightMap = origMtl.mix_shader
+	
+	r
+)
+
 /* 
     UTILITIES
 */
@@ -881,6 +893,7 @@ fn convertMaterial orig_mtl =(
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
 		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl
 		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
+		ai_mix_shader: errorCatching convertAiMixShader orig_mtl 
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
 		ai_lambert: errorCatching convertUnsupportedMtl orig_mtl 
@@ -893,7 +906,6 @@ fn convertMaterial orig_mtl =(
 		ai_switch_shader: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_trace_set: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_volume: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_mix_shader: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_atmosphere_volume: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_fog: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_float: errorCatching convertUnsupportedMtl orig_mtl 
