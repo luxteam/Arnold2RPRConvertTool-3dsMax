@@ -658,7 +658,7 @@ fn convertIBL origLight = (
 		rpr.backgroundType = 0
 
 		if origLight.useColor do (
-			r.backgroundColor = origLight.color
+			rpr.backgroundColor = origLight.color
 		)
 
 		if origLight.useTexmap do (
@@ -668,10 +668,12 @@ fn convertIBL origLight = (
 
 		rpr.backgroundIntensity = origLight.intensity
 
+		
 	) else (
 		delete origLight
-		r = "no_replace"
 	)
+
+	r = "no_replace"
 	r
 )
 
