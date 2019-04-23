@@ -593,6 +593,26 @@ fn convertAiVectorMap origMap = (
 	r
 )
 
+fn convertAiAO origMap = (
+	r = Rpr_Ambient_Occlusion()
+	r.name = origMap.name + rprPostfixStr
+	
+	r.Radius = 0.0187 * origMap.far_clip + 0.0467
+
+	if origMap.invert_normals then (
+		r.Side = 1
+	) else (
+		r.Side = 0
+	)
+
+	r.Unoccluded_Color = origMap.white
+	r.Occluded_Color = origMap.black
+	r.color0Texmap = origMap.white_shader
+	r.color1Texmap = origMap.black_shader
+
+	r
+)
+
 /* 
     LIGHTS
 */
@@ -793,6 +813,7 @@ fn convertUtility orig_map =(
 		ai_normal_map: errorCatching convertAiNormalMap orig_map
 		ai_vector_map: errorCatching convertAiVectorMap orig_map
 		ai_exp: errorCatching convertAiExp orig_map
+		ai_ambient_occlusion: errorCatching convertAiAO orig_map
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_map
@@ -830,7 +851,6 @@ fn convertUtility orig_map =(
 		ai_state_float: errorCatching convertUnsupportedUtility orig_map
 		ai_state_int: errorCatching convertUnsupportedUtility orig_map
 		ai_state_vector: errorCatching convertUnsupportedUtility orig_map
-		ai_ambient_occlusion: errorCatching convertUnsupportedUtility orig_map
 		ai_complex_ior: errorCatching convertUnsupportedUtility orig_map
 		ai_shadow_matte: errorCatching convertUnsupportedUtility orig_map
 		ai_flakes: errorCatching convertUnsupportedUtility orig_map
