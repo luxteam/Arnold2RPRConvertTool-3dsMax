@@ -45,32 +45,6 @@ fn errorCatching functionName orig =(
 	out
 )
 
-fn createOSLInvertColor =(
-
-	osl_map = OSLMap()
-	osl_map.OSLPath = GetDir #maxroot + "OSL\\ColorComp.osl"
-	osl_map.OSLCode =  "// Complements a color.
-						// ColorComp.osl, by Zap Andersson
-						// Modified: 2018-02-08
-						// Copyright 2018 Autodesk Inc, All rights reserved. This file is licensed under Apache 2.0 license
-						//    https://github.com/ADN-DevTech/3dsMax-OSL-Shaders/blob/master/LICENSE.txt
-
-						shader ColorComp
-						[[ string help = \"Inverts (Complements) a color number (1 - Input)\",
-						   string label= \"Invert (color)\",
-						   string category = \"Math\Color\" ]]
-						(
-							color Input = 0.0,
-							output color Out = 0.0,
-						)
-						{
-							Out = 1 - Input;
-						}
-						"
-	osl_map.OSLAutoUpdate = true
-	
-	osl_map
-)
 
 fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 
@@ -104,7 +78,7 @@ fn convertAiStandardSurface origMtl =(
 	r.name = origMtl.name + rprPostfixStr
 
 	-- diffuse
-	if origMtl.base > 0 do ( r.DiffuseEnable = true )
+	if origMtl.base > 0 or origMtl.base_color_shader != undefined do ( r.DiffuseEnable = true )
 	r.DiffuseColor = origMtl.base_color
 	r.DiffuseColorTexmap = origMtl.base_color_shader
 	r.DiffuseWeight = origMtl.base
@@ -115,7 +89,7 @@ fn convertAiStandardSurface origMtl =(
 	r.RefractionAllowCaustics = origMtl.caustics
 	
 	-- reflection
-	if origMtl.specular > 0 do ( r.reflectionEnable = true )
+	if origMtl.specular > 0 or origMtl.specular_color_shader != undefined do ( r.reflectionEnable = true )
 	r.reflectionColor = origMtl.specular_color
 	r.reflectionColorTexmap = origMtl.specular_color_shader
 	r.reflectionWeight = origMtl.specular
@@ -123,7 +97,7 @@ fn convertAiStandardSurface origMtl =(
 	r.reflectionRoughness = origMtl.specular_roughness
 	r.reflectionRoughnessTexmap = origMtl.specular_roughness_shader
 
-	if origMtl.metalness > 0.01 do ( 
+	if origMtl.metalness > 0 or origMtl.metalness_shader != undefined do ( 
 		r.DiffuseEnable = true
 		r.reflectionEnable = true
 		r.refractionEnable = true
@@ -144,7 +118,7 @@ fn convertAiStandardSurface origMtl =(
 	r.reflectionAnisotropyRotationTexmap = origMtl.specular_rotation_shader
 
 	-- refraction
-	if origMtl.transmission > 0 do ( r.refractionEnable = true )
+	if origMtl.transmission > 0 or origMtl.transmission_shader != undefined do ( r.refractionEnable = true )
 	r.RefractionWeight = origMtl.transmission
 	r.RefractionWeightTexmap = origMtl.transmission_shader
 	r.RefractionColor = origMtl.transmission_color
@@ -158,7 +132,7 @@ fn convertAiStandardSurface origMtl =(
 	r.RefractionAbsorptionDistance = origMtl.transmission_depth
 
 	-- subsurface
-	if origMtl.subsurface > 0 do ( 
+	if origMtl.subsurface > 0 or origMtl.subsurface_shader != undefined do ( 
 		r.SssEnable = true 
 		r.DiffuseEnable = true
 		r.DiffuseWeight = 1
@@ -174,11 +148,40 @@ fn convertAiStandardSurface origMtl =(
 	r.SssRadiusTexmap = origMtl.subsurface_radius_shader
 
 	-- coat
-	if origMtl.coat > 0 do ( r.CoatingEnable = true )
+	if origMtl.coat > 0 or origMtl.coat_shader != undefined do ( r.CoatingEnable = true )
 	r.CoatingWeight = origMtl.coat
 	r.CoatingWeightTexmap = origMtl.coat_shader
-	r.CoatingColor = origMtl.coat_color
-	r.CoatingColorTexmap = origMtl.coat_color_shader
+
+	if origMtl.coat_color == color 255 255 255 and origMtl.coat_shader == undefined then (
+		r.CoatingColor = origMtl.coat_color
+		r.CoatingColorTexmap = origMtl.coat_color_shader
+	) else if origMtl.coat_shader == undefined then (
+		r.CoatingColor = color 255 255 255
+		arith = RPR_Arithmetic()
+		arith.operator = 2
+		arith.Color1 = origMtl.base_color
+		arith.color0texmap = origMtl.base_color_shader
+		arith.Color2 = origMtl.coat_color
+		arith.color1texmap = origMtl.coat_color_shader
+		r.diffuseColorTexmap = arith
+	) else (
+		r.CoatingColor = color 255 255 255
+		blend_value = RPR_Blend_Value()
+		blend_value.Color1 = origMtl.base_color
+		blend_value.color0Texmap = origMtl.base_color_shader
+
+		arith = RPR_Arithmetic()
+		arith.operator = 2
+		arith.Color1 = origMtl.base_color
+		arith.color0texmap = origMtl.base_color_shader
+		arith.Color2 = origMtl.coat_color
+		arith.color1texmap = origMtl.coat_color_shader
+
+		blend_value.color1Texmap = arith
+		blend_value.weightTexmap = origMtl.coat_shader
+		r.diffuseColorTexmap = blend_value
+	)
+
 	r.CoatingRoughness = origMtl.coat_roughness
 	r.CoatingRoughnessTexmap = origMtl.coat_roughness_shader
 	r.CoatingIor = origMtl.coat_IOR
@@ -187,7 +190,7 @@ fn convertAiStandardSurface origMtl =(
 	r.CoatingThickness = 1.5
 
 	-- emission
-	if origMtl.emission > 0 do ( r.emissiveEnable = true )
+	if origMtl.emission > 0 or origMtl.emission_color_shader != undefined do ( r.emissiveEnable = true )
 	r.EmissiveWeight = 0.35
 	r.EmissiveColor = origMtl.emission_color
 	r.EmissiveColorTexmap = origMtl.emission_color_shader
@@ -201,9 +204,11 @@ fn convertAiStandardSurface origMtl =(
 
 	if origMtl.opacity_shader != undefined do (
 		r.TransparencyEnable = true
-		osl_map = createOSLInvertColor()
-		osl_map.input_map = origMtl.opacity_shader
-		r.transparencyTexmap = osl_map
+		arith = RPR_Arithmetic()
+		arith.operator = 1
+		arith.Color1 = color 255 255 255
+		arith.color1texmap = origMtl.opacity_shader
+		r.transparencyTexmap = arith
 	)
 
 	if origMtl.normal_shader != undefined do (
@@ -219,7 +224,7 @@ fn convertAiCarPaint origMtl =(
 	r.name = origMtl.name + rprPostfixStr
 
 	-- diffuse
-	if origMtl.base > 0 do ( r.DiffuseEnable = true )
+	if origMtl.base > 0 or origMtl.base_color_shader != undefined do ( r.DiffuseEnable = true )
 	r.DiffuseColor = origMtl.base_color
 	r.DiffuseColorTexmap = origMtl.base_color_shader
 	r.DiffuseWeight = origMtl.base
@@ -228,7 +233,7 @@ fn convertAiCarPaint origMtl =(
 	r.DiffuseRoughnessTexmap = origMtl.base_roughness_shader
 	
 	-- reflection
-	if origMtl.specular > 0 do ( r.reflectionEnable = true )
+	if origMtl.specular > 0 or origMtl.specular_color_shader != undefined do ( r.reflectionEnable = true )
 	r.reflectionColor = origMtl.specular_color
 	r.reflectionColorTexmap = origMtl.specular_color_shader
 	r.reflectionWeight = origMtl.specular
@@ -239,11 +244,40 @@ fn convertAiCarPaint origMtl =(
 	r.reflectionIorTexmap = origMtl.specular_IOR_shader
 
 	-- coat
-	if origMtl.coat > 0 do ( r.CoatingEnable = true )
+	if origMtl.coat > 0 or origMtl.coat_shader != undefined do ( r.CoatingEnable = true )
 	r.CoatingWeight = origMtl.coat
 	r.CoatingWeightTexmap = origMtl.coat_shader
-	r.CoatingColor = origMtl.coat_color
-	r.CoatingColorTexmap = origMtl.coat_color_shader
+
+	if origMtl.coat_color == color 255 255 255 and origMtl.coat_shader == undefined then (
+		r.CoatingColor = origMtl.coat_color
+		r.CoatingColorTexmap = origMtl.coat_color_shader
+	) else if origMtl.coat_shader == undefined then (
+		r.CoatingColor = color 255 255 255
+		arith = RPR_Arithmetic()
+		arith.operator = 2
+		arith.Color1 = origMtl.base_color
+		arith.color0texmap = origMtl.base_color_shader
+		arith.Color2 = origMtl.coat_color
+		arith.color1texmap = origMtl.coat_color_shader
+		r.diffuseColorTexmap = arith
+	) else (
+		r.CoatingColor = color 255 255 255
+		blend_value = RPR_Blend_Value()
+		blend_value.Color1 = origMtl.base_color
+		blend_value.color0Texmap = origMtl.base_color_shader
+
+		arith = RPR_Arithmetic()
+		arith.operator = 2
+		arith.Color1 = origMtl.base_color
+		arith.color0texmap = origMtl.base_color_shader
+		arith.Color2 = origMtl.coat_color
+		arith.color1texmap = origMtl.coat_color_shader
+
+		blend_value.color1Texmap = arith
+		blend_value.weightTexmap = origMtl.coat_shader
+		r.diffuseColorTexmap = blend_value
+	)
+
 	r.CoatingRoughness = origMtl.coat_roughness
 	r.CoatingRoughnessTexmap = origMtl.coat_roughness_shader
 	r.CoatingIor = origMtl.coat_IOR
@@ -369,6 +403,19 @@ fn convertColorClampOSL origMap = (
 	r
 )
 
+fn convertColorCompOSL origMap = (
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 1
+
+	r.Color1 = color 255 255 255
+	r.Color2 = origMap.input
+	r.color1texmap = origMap.input_map
+
+	r
+)
+
 fn convertOSLMap origMap = (
 
 	OSLPath = origMap.OSLPath
@@ -382,6 +429,7 @@ fn convertOSLMap origMap = (
 		"ColorMin.osl": convertColorOSL origMap 12
 		"ColorMax.osl": convertColorOSL origMap 13
 		"ColorClamp.osl": convertColorClampOSL origMap
+		"ColorComp.osl": convertColorCompOSL origMap
 
 		default: origMap
 	)
