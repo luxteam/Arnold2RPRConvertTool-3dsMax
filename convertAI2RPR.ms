@@ -349,6 +349,26 @@ fn convertColorOSL origMap operator = (
 	r
 )
 
+fn convertColorClampOSL origMap = (
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 12
+
+	arith = RPR_Arithmetic()
+	arith.operator = 13
+	arith.Color1 = origMap.Input
+	arith.Color2 = origMap.min
+	arith.color0texmap = origMap.Input_map
+	arith.color1texmap = origMap.Min_map
+
+	r.color0texmap = arith
+	r.Color2 = origMap.max
+	r.color1texmap = origMap.Max_map
+
+	r
+)
+
 fn convertOSLMap origMap = (
 
 	OSLPath = origMap.OSLPath
@@ -361,6 +381,7 @@ fn convertOSLMap origMap = (
 		"ColorDiv.osl": convertColorOSL origMap 3
 		"ColorMin.osl": convertColorOSL origMap 12
 		"ColorMax.osl": convertColorOSL origMap 13
+		"ColorClamp.osl": convertColorClampOSL origMap
 
 		default: origMap
 	)
