@@ -694,7 +694,7 @@ fn convertPhysicalLight origLight = (
 
 	if light_type == 0 then ( -- point
 		r.lightType = 2
-		r.LightIntensity = (0.334 * origLight.intensity * 2.0^origLight.exposure) / 0.8696
+		r.LightIntensity = (0.0334 * origLight.intensity * 2.0 ^ origLight.exposure) ^ 0.8696
 	) else if light_type == 1 then ( -- directional
 		r.lightType = 3
 		r.LightIntensity = origLight.intensity * 2.0^origLight.exposure 
