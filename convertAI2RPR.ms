@@ -672,6 +672,20 @@ fn convertAiAO origMap = (
 	r
 )
 
+fn convertAiMixRGBA origMap = (
+	r = rpr_blend_value()
+	r.name = origMap.name + rprPostfixStr
+	
+	r.Color1 = origMap.input1
+	r.Color2 = origMap.input2
+	r.color0Texmap = origMap.input1_shader
+	r.color1Texmap = origMap.input2_shader
+	r.Weight = origMap.mix
+	r.weightTexmap = origMap.mix_shader
+
+	r
+)
+
 /* 
     LIGHTS
 */
@@ -877,6 +891,7 @@ fn convertUtility orig_map =(
 		ai_ambient_occlusion: errorCatching convertAiAO orig_map
 		ai_sqrt: errorCatching convertAiSqrt orig_map
 		ai_modulo: errorCatching convertAiModulo orig_map
+		ai_mix_rgba: errorCatching convertAiMixRGBA orig_map	
 
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
@@ -902,7 +917,6 @@ fn convertUtility orig_map =(
 		ai_log: errorCatching convertUnsupportedUtility orig_map
 		ai_matrix_transform: errorCatching convertUnsupportedUtility orig_map
 		ai_matrix_multiply_vector: errorCatching convertUnsupportedUtility orig_map
-		ai_mix_rgba: errorCatching convertUnsupportedUtility orig_map	
 		ai_negate: errorCatching convertUnsupportedUtility orig_map
 		ai_random: errorCatching convertUnsupportedUtility orig_map
 		ai_range: errorCatching convertUnsupportedUtility orig_map
