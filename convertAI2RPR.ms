@@ -466,9 +466,6 @@ fn convertMathUtility origMap =(
 		ai_divide: 3
 		ai_max: 13
 		ai_min: 12
-		ai_pow: 11
-		ai_normalize: 16
-		ai_atan: 21
 		ai_cross: 22
 		ai_dot: 10
 		
@@ -484,13 +481,72 @@ fn convertMathUtility origMap =(
 	r
 )
 
-fn convertAiAbs origMap =(
+fn convertMathUtilityOneChannel origMap =(
 	r = RPR_Arithmetic()
 	r.name = origMap.name + rprPostfixStr
 
-	r.operator = 17
+	cls=classof origMap
+	local operator=case cls of (
+		ai_abs: 17
+		ai_normalize: 16
+		
+		default: 0
+	)
+
+	r.operator = operator
 	r.Color1 = origMap.input
 	r.color0texmap = origMap.input_shader
+
+	r
+)
+
+fn convertAiAtan origMap =(
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 21
+	r.Color1 = origMap.x
+	r.color0texmap = origMap.x_shader
+	r.Color2 = origMap.y
+	r.color1texmap = origMap.y_shader
+
+	r
+)
+
+fn convertAiModulo origMap =(
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 18
+	r.Color1 = origMap.input
+	r.color0texmap = origMap.input_shader
+	r.Color2 = origMap.divisor
+	r.color1texmap = origMap.divisor_shader
+
+	r
+)
+
+fn convertAiPow origMap =(
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 11
+	r.Color1 = origMap.base
+	r.color0texmap = origMap.base_shader
+	r.Color2 = origMap.exponent
+	r.color1texmap = origMap.exponent_shader
+
+	r
+)
+
+fn convertAiSqrt origMap =(
+	r = RPR_Arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	r.operator = 11
+	r.Color1 = origMap.input
+	r.color0texmap = origMap.input_shader
+	r.Color2 = color 128 128 128
 
 	r
 )
@@ -499,7 +555,6 @@ fn convertAiExp origMap =(
 	r = RPR_Arithmetic()
 	r.name = origMap.name + rprPostfixStr
 
-	e = 2.718
 	base_color = #(remap_value origMap.input.red 255 0 1 0, remap_value origMap.input.green 255 0 1 0, remap_value origMap.input.blue 255 0 1 0)
 	exp_color = #(2.718^base_color[1], 2.718^base_color[2], 2.718^base_color[1])
 	for i=1 to exp_color.count do(
@@ -808,11 +863,11 @@ fn convertUtility orig_map =(
 		ai_divide: errorCatching convertMathUtility orig_map
 		ai_max: errorCatching convertMathUtility orig_map
 		ai_min: errorCatching convertMathUtility orig_map
-		ai_pow: errorCatching convertMathUtility orig_map
-		ai_normalize: errorCatching convertMathUtility orig_map
-		ai_atan: errorCatching convertMathUtility orig_map
+		ai_pow: errorCatching convertAiPow orig_map
+		ai_normalize: errorCatching convertMathUtilityOneChannel orig_map
+		ai_atan: errorCatching convertAiAtan orig_map
 		ai_cross: errorCatching convertMathUtility orig_map
-		ai_abs: errorCatching convertAiAbs orig_map
+		ai_abs: errorCatching convertMathUtilityOneChannel orig_map
 		ai_dot: errorCatching convertMathUtility orig_map
 		ai_bump2d: errorCatching convertAiBump2d orig_map
 		ai_bump3d: errorCatching convertAiBump3d orig_map
@@ -820,6 +875,9 @@ fn convertUtility orig_map =(
 		ai_vector_map: errorCatching convertAiVectorMap orig_map
 		ai_exp: errorCatching convertAiExp orig_map
 		ai_ambient_occlusion: errorCatching convertAiAO orig_map
+		ai_sqrt: errorCatching convertAiSqrt orig_map
+		ai_modulo: errorCatching convertAiModulo orig_map
+
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_map
@@ -846,13 +904,11 @@ fn convertUtility orig_map =(
 		ai_matrix_multiply_vector: errorCatching convertUnsupportedUtility orig_map
 		ai_mix_rgba: errorCatching convertUnsupportedUtility orig_map	
 		ai_negate: errorCatching convertUnsupportedUtility orig_map
-		ai_modulo: errorCatching convertUnsupportedUtility orig_map
 		ai_random: errorCatching convertUnsupportedUtility orig_map
 		ai_range: errorCatching convertUnsupportedUtility orig_map
 		ai_reciprocal: errorCatching convertUnsupportedUtility orig_map
 		ai_sign: errorCatching convertUnsupportedUtility orig_map
 		ai_space_transform: errorCatching convertUnsupportedUtility orig_map
-		ai_sqrt: errorCatching convertUnsupportedUtility orig_map
 		ai_trigo: errorCatching convertUnsupportedUtility orig_map
 		ai_state_float: errorCatching convertUnsupportedUtility orig_map
 		ai_state_int: errorCatching convertUnsupportedUtility orig_map
