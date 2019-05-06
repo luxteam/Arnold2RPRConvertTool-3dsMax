@@ -25,7 +25,7 @@ new_lights=#()
 unsupportedPostfixStr = "_unsupported"
 rprPostfixStr = "_rpr"
 
-try(log_file = (filterString (maxFilePath + maxFileName) ".")[1] + ".log")catch()
+log_file = maxFilePath + maxFileName + ".log"
 
 fn write_own_property_log msg =(
 	try (
@@ -42,7 +42,7 @@ fn write_converted_property_log rpr_obj conv_obj rpr_attr conv_attr =(
 	try (
 		log_obj = openFile log_file mode: "a"
 		msg = StringStream ""
-		format "\tProperty %.% is converted to %.%" rpr_obj.name rpr_attr conv_obj.name conv_attr to: msg
+		format "\tProperty %.% is converted to %.%" rpr_obj rpr_attr conv_obj conv_attr to: msg
 		format "%\r\n" (msg as string) to: log_obj
 		flush log_obj
 		close log_obj
@@ -59,7 +59,7 @@ fn startConversion =(
 
 	try (
 		log_obj = openFile log_file mode: "w"
-		format "%\r\n" (msg as string) to: log_obj
+		format "%" (msg as string) to: log_obj
 		flush log_obj
 		close log_obj
 		free log_obj
@@ -75,7 +75,7 @@ fn finishConversion time =(
 )
 
 fn start_log conv_obj rpr_obj =(
-	msg = "Found node:\r\n"
+	msg = "\n\nFound node:\r\n"
 	msg += "\tname: " + conv_obj.name + "\r\n"
 	msg += "\ttype: " + classof conv_obj as string + "\r\n"
 	msg += "Converting to:\r\n" 
@@ -88,7 +88,7 @@ fn start_log conv_obj rpr_obj =(
 
 fn end_log conv_obj =(
 	msg = StringStream ""
-	format "Conversion of % is finished.\n\n \r\n" conv_obj.name to: msg
+	format "Conversion of % is finished. \r\n" conv_obj.name to: msg
 	write_own_property_log msg
 )
 
@@ -129,7 +129,7 @@ fn set_property obj obj_property value =(
 	try (
 		msg = StringStream ""
 		setProperty obj obj_property value
-		format "\tSet value % to %.%" value obj.name obj_property to: msg
+		format "\tSet value % to %.%" value obj obj_property to: msg
 		write_own_property_log msg
 	) catch (
 		print("Exception:" + getCurrentException())
