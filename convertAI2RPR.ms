@@ -270,11 +270,12 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "CoatingWeight" "coat"
 	copy_property r origMtl "CoatingWeightTexmap" "coat_shader"
 
-	if get_property origMtl "coat_color" == color 255 255 255 and get_property origMtl "coat_shader" == undefined then (
+	print(get_property origMtl "coat_color")
+	if get_property origMtl "coat_color" == (color 255 255 255) and get_property origMtl "coat_shader" == undefined then (
 		copy_property r origMtl "CoatingColor" "coat_color"
 		copy_property r origMtl "CoatingColorTexmap" "coat_color_shader"
 	) else if get_property origMtl "coat_shader" == undefined then (
-		set_property r "CoatingColor" color 255 255 255
+		set_property r "CoatingColor" (color 255 255 255)
 		arith = RPR_Arithmetic()
 		set_property arith "operator" 2
 		copy_property arith origMtl "Color1" "base_color"
@@ -283,7 +284,7 @@ fn convertAiStandardSurface origMtl =(
 		copy_property arith origMtl "color1texmap" "coat_color_shader"
 		set_property r "diffuseColorTexmap" arith
 	) else (
-		set_property r "CoatingColor" color 255 255 255
+		set_property r "CoatingColor" (color 255 255 255)
 		blend_value = RPR_Blend_Value()
 		copy_property blend_value origMtl "Color1" "base_color"
 		copy_property blend_value origMtl "color0Texmap" "base_color_shader"
@@ -317,7 +318,7 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "EmissiveColorTexmap" "emission_color_shader"
 	set_property r "EmissiveIntensity" ((get_property origMtl "emission") *2.5)
 
-	if get_property origMtl "opacity" != color 255 255 255 then (
+	if get_property origMtl "opacity" != (color 255 255 255) then (
 		set_property r "TransparencyEnable" true
 		original_opacity_color = get_property origMtl "opacity"
 		opacity_color = amax #(original_opacity_color.red, original_opacity_color.green, original_opacity_color.blue)
@@ -328,7 +329,7 @@ fn convertAiStandardSurface origMtl =(
 		set_property r "TransparencyEnable" true
 		arith = RPR_Arithmetic()
 		set_property arith "operator" 1
-		set_property arith "Color1" color 255 255 255
+		set_property arith "Color1" (color 255 255 255)
 		copy_property arith origMtl "color1texmap" "opacity_shader"
 		set_property r "transparencyTexmap" arith
 	)
@@ -377,11 +378,11 @@ fn convertAiCarPaint origMtl =(
 	copy_property r origMtl "CoatingWeight" "coat"
 	copy_property r origMtl "CoatingWeightTexmap" "coat_shader"
 
-	if get_property origMtl "coat_color" == color 255 255 255 and get_property origMtl "coat_shader" == undefined then (
+	if get_property origMtl "coat_color" == (color 255 255 255) and get_property origMtl "coat_shader" == undefined then (
 		copy_property r origMtl "CoatingColor" "coat_color"
 		copy_property r origMtl "CoatingColorTexmap" "coat_color_shader"
 	) else if get_property origMtl "coat_shader" == undefined then (
-		set_property r "CoatingColor" color 255 255 255
+		set_property r "CoatingColor" (color 255 255 255)
 		arith = RPR_Arithmetic()
 		set_property arith "operator" 2
 		copy_property arith origMtl "Color1" "base_color"
@@ -390,7 +391,7 @@ fn convertAiCarPaint origMtl =(
 		copy_property arith origMtl "color1texmap" "coat_color_shader"
 		set_property r "diffuseColorTexmap" arith
 	) else (
-		set_property r "CoatingColor" color 255 255 255
+		set_property r "CoatingColor" (color 255 255 255)
 		blend_value = RPR_Blend_Value()
 		copy_property blend_value origMtl "Color1" "base_color"
 		copy_property blend_value origMtl "color0Texmap" "base_color_shader"
@@ -548,7 +549,7 @@ fn convertColorCompOSL origMap = (
 	start_log origMap r
 
 	set_property r "operator" 1
-	set_property r "Color1" color 255 255 255
+	set_property r "Color1" (color 255 255 255)
 	copy_property r origMap "Color2" "input"
 	copy_property r origMap "color1texmap" "input_map"
 
@@ -705,7 +706,7 @@ fn convertAiSqrt origMap =(
 	set_property r "operator" 11
 	copy_property r origMap "Color1" "input"
 	copy_property r origMap "color0texmap" "input_shader"
-	set_property r "Color2" color 128 128 128
+	set_property r "Color2" (color 128 128 128)
 
 	-- logging
 	end_log origMap
@@ -732,8 +733,8 @@ fn convertAiExp origMap =(
 	)
 
 	set_property r "operator" 0
-	set_property r "Color1" color exp_color[1] exp_color[2] exp_color[3]
-	set_property r "Color2" color 255 255 255
+	set_property r "Color1" (color exp_color[1] exp_color[2] exp_color[3])
+	set_property r "Color2" (color 255 255 255)
 
 	-- logging
 	end_log origMap
