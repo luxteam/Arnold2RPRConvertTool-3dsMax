@@ -270,7 +270,6 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "CoatingWeight" "coat"
 	copy_property r origMtl "CoatingWeightTexmap" "coat_shader"
 
-	print(get_property origMtl "coat_color")
 	if get_property origMtl "coat_color" == (color 255 255 255) and get_property origMtl "coat_shader" == undefined then (
 		copy_property r origMtl "CoatingColor" "coat_color"
 		copy_property r origMtl "CoatingColorTexmap" "coat_color_shader"
@@ -604,7 +603,7 @@ fn convertMathUtility origMap =(
 
 	set_property r "operator" operator
 	copy_property r origMap "Color1" "input1"
-	copy_property r origMap "Color2" "input1"
+	copy_property r origMap "Color2" "input2"
 	copy_property r origMap "color0texmap" "input1_shader"
 	copy_property r origMap "color1texmap" "input2_shader"
 
