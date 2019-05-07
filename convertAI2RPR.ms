@@ -42,7 +42,7 @@ fn write_converted_property_log rpr_obj conv_obj rpr_attr conv_attr =(
 	try (
 		log_obj = openFile log_file mode: "a"
 		msg = StringStream ""
-		format "\tProperty %.% is converted to %.%" conv_obj conv_attr rpr_obj rpr_attr to: msg
+		format "\tProperty %.% is converted to %.%" (conv_obj as string) conv_attr (rpr_obj as string) rpr_attr to: msg
 		format "%\r\n" (msg as string) to: log_obj
 		flush log_obj
 		close log_obj
@@ -76,10 +76,10 @@ fn finishConversion time =(
 
 fn start_log conv_obj rpr_obj =(
 	msg = "\n\nFound node:\r\n"
-	msg += "\tname: " + conv_obj.name + "\r\n"
+	msg += "\tname: " + (conv_obj as string) + "\r\n"
 	msg += "\ttype: " + classof conv_obj as string + "\r\n"
 	msg += "Converting to:\r\n" 
-    msg += "\tname: " + rpr_obj.name + "\r\n"
+    msg += "\tname: " + (rpr_obj as string) + "\r\n"
     msg += "\ttype: " + classof rpr_obj as string + "\r\n"
     msg += "Conversion details:"
 
@@ -88,7 +88,7 @@ fn start_log conv_obj rpr_obj =(
 
 fn end_log conv_obj =(
 	msg = StringStream ""
-	format "Conversion of % is finished. \r\n" conv_obj.name to: msg
+	format "Conversion of % is finished. \r\n" (conv_obj as string) to: msg
 	write_own_property_log msg
 )
 
@@ -598,10 +598,10 @@ fn convertColorCompOSL origMap = (
 
 fn convertOSLMap origMap = (
 
-	OSLPath = origMap.OSLPath
+	OSLPath = get_property origMap "OSLPath"
 	OSLFile = (filterString OSLPath "\\")
 	OSLFile = OSLFile[OSLFile.count]
-	local new_osl=case OSLFile of (
+	local new_osl = case OSLFile of (
 		"ColorAdd.osl": convertColorOSL origMap 0
 		"ColorSub.osl": convertColorOSL origMap 1
 		"ColorMul.osl": convertColorOSL origMap 2
@@ -1302,6 +1302,10 @@ fn convertMaterial orig_mtl =(
 
 fn convertEnvironment =(
 	rpr = Radeon_ProRender()
+
+	-- log to file 
+	start_log "3dsMax Environment" rpr
+
 	set_property rpr "backgroundOverride" true
 	set_property rpr "backgroundType" 0
 
@@ -1313,6 +1317,9 @@ fn convertEnvironment =(
 	)
 
 	set_property rpr "backgroundIntensity" 1.0
+
+	-- log to file 
+	end_log "3dsMax Environment"
 )
 
 fn cleanUpConversionData =(
