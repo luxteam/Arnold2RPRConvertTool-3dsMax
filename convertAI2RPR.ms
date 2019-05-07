@@ -1063,7 +1063,7 @@ fn convertPhysicalLight origLight = (
 	-- position conversion
 	set_property origLight "targeted" false
 	copy_property r origLight "pos" "pos"
-	copy_property r origLight "rotation" "rotation"
+	--copy_property r origLight "rotation" "rotation"
 	copy_property r origLight "scale" "scale"
 	copy_property r origLight "pivot" "pivot"
 	copy_property r origLight "transform" "transform"
