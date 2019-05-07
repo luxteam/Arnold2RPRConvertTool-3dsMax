@@ -42,7 +42,7 @@ fn write_converted_property_log rpr_obj conv_obj rpr_attr conv_attr =(
 	try (
 		log_obj = openFile log_file mode: "a"
 		msg = StringStream ""
-		format "\tProperty %.% is converted to %.%" rpr_obj rpr_attr conv_obj conv_attr to: msg
+		format "\tProperty %.% is converted to %.%" conv_obj conv_attr rpr_obj rpr_attr to: msg
 		format "%\r\n" (msg as string) to: log_obj
 		flush log_obj
 		close log_obj
@@ -163,6 +163,45 @@ fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 	remapped_value = minOutput + (((currentValue - minInput) as float / (inputDiff) as float) * outputDiff)
 
 	remapped_value
+)
+
+
+fn convertTemperature temperature =(
+	temperature = temperature / 100
+
+	if temperature <= 66 then (
+		colorR = 255
+	) else (
+		colorR = temperature - 60
+		colorR = 329.698727446 * colorR ^ -0.1332047592
+		if colorR < 0 do colorR = 0
+		if colorR > 255 do colorR = 255
+	)
+
+	if temperature <= 66 then (
+		colorG = temperature
+		colorG = 99.4708025861 * log colorG - 161.1195681661
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	) else (
+		colorG = temperature - 60
+		colorG = 288.1221695283 * colorG ^ -0.0755148492
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	)
+
+	if temperature >= 66 then (
+		colorB = 255
+	) else if temperature <= 19 then (
+		colorB = 0
+	) else (
+		colorB = temperature - 10
+		colorB = 138.5177312231 * log colorB - 305.0447927307
+		if colorB < 0 do colorB = 0
+		if colorB > 255 do colorB = 255
+	)
+
+	(color colorR colorG colorB)
 )
 
 
@@ -979,6 +1018,10 @@ fn convertIesLight origLight = (
 fn convertIBL origLight = (
 	if get_property origLight "on" do(
 		rpr = Radeon_ProRender()
+
+		-- log to file 
+		start_log origLight rpr
+
 		set_property rpr "backgroundOverride" true
 		set_property rpr "backgroundType" 0
 
@@ -997,6 +1040,9 @@ fn convertIBL origLight = (
 		)
 
 		set_property rpr "backgroundIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
+
+		-- logging
+		end_log origLight
 	)
 
 	"no_replace"
@@ -1072,6 +1118,9 @@ fn convertPhysicalLight origLight = (
 	copy_property r origLight "ColourPicker" "color"
 	copy_property r origLight "temperature" "kelvin"
 
+	-- logging
+	end_log origLight
+
 	r
 )
 
@@ -1090,6 +1139,9 @@ fn convertArnoldLight origLight = (
 	r
 )
 
+/*
+ CONVERT FUNCTIONS
+*/
 
 fn convertLight orig_light =(
 	if superclassof orig_light != light then return orig_light  -- check if this is a light; if not, just return the value
@@ -1260,45 +1312,7 @@ fn convertEnvironment =(
 		set_property rpr "backgroundMap" environmentMap
 	)
 
-	set_property rpr "backgroundIntensity" 1
-)
-
-fn convertTemperature temperature =(
-	temperature = temperature / 100
-
-	if temperature <= 66 then (
-		colorR = 255
-	) else (
-		colorR = temperature - 60
-		colorR = 329.698727446 * colorR ^ -0.1332047592
-		if colorR < 0 do colorR = 0
-		if colorR > 255 do colorR = 255
-	)
-
-	if temperature <= 66 then (
-		colorG = temperature
-		colorG = 99.4708025861 * log colorG - 161.1195681661
-		if colorG < 0 do colorG = 0
-		if colorG > 255 do colorG = 255
-	) else (
-		colorG = temperature - 60
-		colorG = 288.1221695283 * colorG ^ -0.0755148492
-		if colorG < 0 do colorG = 0
-		if colorG > 255 do colorG = 255
-	)
-
-	if temperature >= 66 then (
-		colorB = 255
-	) else if temperature <= 19 then (
-		colorB = 0
-	) else (
-		colorB = temperature - 10
-		colorB = 138.5177312231 * log colorB - 305.0447927307
-		if colorB < 0 do colorB = 0
-		if colorB > 255 do colorB = 255
-	)
-
-	(color colorR colorG colorB)
+	set_property rpr "backgroundIntensity" 1.0
 )
 
 fn cleanUpConversionData =(
@@ -1347,7 +1361,7 @@ fn convertScene =(
 			for i in clssInst do (
 				obj_arr = getObjsFromMaterial i -- get all geometry from this material
 				if obj_arr.count > 0 do (
-					newMat = errorCatching convertMaterial i -- convert material
+					newMat = convertMaterial i -- convert material
 					if newMat != "no_replace" do (
 						for g in obj_arr do g.material = newMat -- replace arnold material
 					)
