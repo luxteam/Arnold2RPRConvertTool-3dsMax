@@ -217,7 +217,6 @@ fn convertAiStandardSurface origMtl =(
 	if get_property origMtl "metalness" > 0 or get_property origMtl "metalness_shader" != undefined do (
 		set_property r "DiffuseEnable" true
 		set_property r "reflectionEnable" true
-		set_property r "refractionEnable" true
 		set_property r "reflectionMode" 2
 		copy_property r origMtl "reflectionColor" "base_color"
 		copy_property r origMtl "reflectionColorTexmap" "base_color_shader"
@@ -866,6 +865,63 @@ fn convertAiMixRGBA origMap = (
 	r
 )
 
+fn convertAiColorCorrect origMap = (
+	local r = rpr_blend_value()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	arith_mult = rpr_arithmetic()
+	set_property arith_mult "operator" 2
+	copy_property arith_mult origMap "Color1" "input"
+
+	if get_property origMap "input_shader" != undefined do (
+		gamma = texture_gamma_correction()
+		set_property gamma "UseGammaCorrection" true
+		set_property gamma "Boundary" 0
+		set_property gamma "UseCustomGamma" false
+		copy_property gamma origMap "Min_Height" "gamma"
+
+		if get_property origMap "invert" then (
+			arith_invert = rpr_arithmetic()
+			set_property arith_invert "operator" 1
+			set_property arith_invert "Color1" (color 255 255 255)
+			copy_property arith_invert origMap "Color2" "input"
+			copy_property arith_invert origMap "color1Texmap" "input_shader"
+			set_property gamma "Map" arith_invert
+		) else(
+			copy_property gamma origMap "Map" "input_shader"
+		)
+
+		set_property arith_mult "color0Texmap" gamma
+
+	)
+
+	copy_property arith_mult origMap "Color2" "multiply"
+	copy_property arith_mult origMap "color1Texmap" "multiply_shader"
+	
+	arith_add = rpr_arithmetic()
+	set_property arith_add "operator" 0
+	set_property arith_add "color0Texmap" arith_mult
+	copy_property arith_add origMap "Color2" "add"
+	copy_property arith_add origMap "color1Texmap" "add_shader"
+
+	set_property r "color0Texmap" arith_add
+	if get_property origMap "invert" then (
+		set_property r "color1Texmap" arith_invert
+	) else (
+		copy_property r origMap "color1Texmap" "input_shader"
+	)
+	copy_property r origMap "Weight" "mask"
+	copy_property r origMap "weightTexmap" "mask_shader"
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
 /* 
     LIGHTS
 */
@@ -877,17 +933,18 @@ fn convertIesLight origLight = (
 	-- log to file 
 	start_log origLight r
 
+	-- On/Off, Include/exclude
+	copy_property r origLight "enabled" "on"
+	copy_property r origLight "targeted" "targeted"
+
 	-- position conversion
+	set_property origLight "targeted" false
 	copy_property r origLight "pos" "pos"
-	--copy_property r origLight "rotation" "rotation"
+	copy_property r origLight "rotation" "rotation"
 	copy_property r origLight "scale" "scale"
 	copy_property r origLight "pivot" "pivot"
 	copy_property r origLight "transform" "transform"
 	copy_property r origLight "dir" "dir"
-
-	-- On/Off, Include/exclude
-	copy_property r origLight "enabled" "on"
-	copy_property r origLight "targeted" "targeted"
 
 	-- ies file
 	filename = get_property origLight "filename"
@@ -925,16 +982,21 @@ fn convertIBL origLight = (
 		set_property rpr "backgroundOverride" true
 		set_property rpr "backgroundType" 0
 
-		if get_property origLight "useColor" do (
+		if get_property origLight "useKelvin" then (
+			temp_color = convertTemperature (get_property origLight "kelvin")
+			set_property rpr "backgroundColor" temp_color
+		) else (
 			copy_property rpr origLight "backgroundColor" "color"
 		)
 
-		if get_property origLight "useTexmap" do (
+		if get_property origLight "useTexmap" then (
 			set_property rpr "useBackgroundMap" true
 			copy_property rpr origLight "backgroundMap" "texmap"
+		) else (
+			set_property rpr "backgroundMap" undefined
 		)
 
-		copy_property rpr origLight "backgroundIntensity" "intensity"	
+		set_property rpr "backgroundIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
 	)
 
 	"no_replace"
@@ -947,18 +1009,19 @@ fn convertPhysicalLight origLight = (
 	-- log to file 
 	start_log origLight r
 
-	-- position conversion
-	copy_property r origLight "pos" "pos"
-	--copy_property r origLight "rotation" "rotation"
-	copy_property r origLight "scale" "scale"
-	copy_property r origLight "pivot" "pivot"
-	copy_property r origLight "transform" "transform"
-	copy_property r origLight "dir" "dir"
-
 	-- On/Off, Include/exclude
 	copy_property r origLight "isEnabled" "on"
 	copy_property r origLight "isTargeted" "targeted"
 	copy_property r origLight "DistanceToTarget" "targdist"
+
+	-- position conversion
+	set_property origLight "targeted" false
+	copy_property r origLight "pos" "pos"
+	copy_property r origLight "rotation" "rotation"
+	copy_property r origLight "scale" "scale"
+	copy_property r origLight "pivot" "pivot"
+	copy_property r origLight "transform" "transform"
+	copy_property r origLight "dir" "dir"
 
 	light_type = get_property origLight "shapeType"
 
@@ -1103,12 +1166,12 @@ fn convertMaterial orig_mtl =(
 		ai_sqrt: errorCatching convertAiSqrt orig_mtl
 		ai_modulo: errorCatching convertAiModulo orig_mtl
 		ai_mix_rgba: errorCatching convertAiMixRGBA orig_mtl	
+		ai_color_correct: errorCatching convertAiColorCorrect orig_mtl
 
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
 		ai_color_convert: errorCatching convertUnsupportedUtility orig_mtl
-		ai_color_correct: errorCatching convertUnsupportedUtility orig_mtl
 		ai_color_jitter: errorCatching convertUnsupportedUtility orig_mtl
 		ai_float_to_int: errorCatching convertUnsupportedUtility orig_mtl
 		ai_float_to_matrix: errorCatching convertUnsupportedUtility orig_mtl
@@ -1185,6 +1248,59 @@ fn convertMaterial orig_mtl =(
 	new_mtl
 )
 
+fn convertEnvironment =(
+	rpr = Radeon_ProRender()
+	set_property rpr "backgroundOverride" true
+	set_property rpr "backgroundType" 0
+
+	set_property rpr "backgroundColor" backgroundColor
+	
+	if useEnvironmentMap do (
+		set_property rpr "useBackgroundMap" true
+		set_property rpr "backgroundMap" environmentMap
+	)
+
+	set_property rpr "backgroundIntensity" 1
+)
+
+fn convertTemperature temperature =(
+	temperature = temperature / 100
+
+	if temperature <= 66 then (
+		colorR = 255
+	) else (
+		colorR = temperature - 60
+		colorR = 329.698727446 * colorR ^ -0.1332047592
+		if colorR < 0 do colorR = 0
+		if colorR > 255 do colorR = 255
+	)
+
+	if temperature <= 66 then (
+		colorG = temperature
+		colorG = 99.4708025861 * log colorG - 161.1195681661
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	) else (
+		colorG = temperature - 60
+		colorG = 288.1221695283 * colorG ^ -0.0755148492
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	)
+
+	if temperature >= 66 then (
+		colorB = 255
+	) else if temperature <= 19 then (
+		colorB = 0
+	) else (
+		colorB = temperature - 10
+		colorB = 138.5177312231 * log colorB - 305.0447927307
+		if colorB < 0 do colorB = 0
+		if colorB > 255 do colorB = 255
+	)
+
+	(color colorR colorG colorB)
+)
+
 fn cleanUpConversionData =(
 
 	delete (for elem in orig_lights where (superclassof elem == light) and isvalidnode elem collect elem) 
@@ -1213,6 +1329,9 @@ fn convertScene =(
 	start = timeStamp()
 
 	startConversion()
+
+	-- Environment conversion
+	convertEnvironment()
 
 	-- material conversion
 	aiMtlClasses = #("ai_standard_surface", "ai_car_paint", "ai_lambert", "ai_layer_shader", "ai_matte", \
