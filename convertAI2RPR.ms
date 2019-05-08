@@ -946,11 +946,11 @@ fn convertAiColorCorrect origMap = (
 	copy_property arith_add origMap "Color2" "add"
 	copy_property arith_add origMap "color1Texmap" "add_shader"
 
-	set_property r "color0Texmap" arith_add
+	set_property r "color1Texmap" arith_add
 	if get_property origMap "invert" then (
-		set_property r "color1Texmap" arith_invert
+		set_property r "color0Texmap" arith_invert
 	) else (
-		copy_property r origMap "color1Texmap" "input_shader"
+		copy_property r origMap "color0Texmap" "input_shader"
 	)
 	copy_property r origMap "Weight" "mask"
 	copy_property r origMap "weightTexmap" "mask_shader"
