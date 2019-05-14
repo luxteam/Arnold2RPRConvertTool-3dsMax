@@ -92,6 +92,8 @@ fn end_log conv_obj =(
 	write_own_property_log msg
 )
 
+fn convertMaterial orig_mtl =()
+
 fn get_property value_mat value_attr =(
 	try (
 		obj_value = getProperty value_mat value_attr
@@ -100,7 +102,21 @@ fn get_property value_mat value_attr =(
 		print("Exception:" + getCurrentException())
 		print("Stack trace: " + getCurrentExceptionStackTrace())
 		msg = StringStream ""
-		format "[ERROR] There is no %.% field in this node. Check the field and try again." value_mat.name value_attr to: msg
+		format "[ERROR] There is no %.% field in this node. Check the field and try again." (value_mat as string) value_attr to: msg
+		write_own_property_log msg
+	)
+)
+
+fn set_property obj obj_property value =(
+	try (
+		msg = StringStream ""
+		setProperty obj obj_property value
+		format "\tSet value % to %.%" value (obj as string) obj_property to: msg
+		write_own_property_log msg
+	) catch (
+		print("Exception:" + getCurrentException())
+		print("Stack trace: " + getCurrentExceptionStackTrace())
+		format "\t[ERROR] Set value % to %.% is failed. Check the values and their boundaries." value (obj as string) obj_property to: msg
 		write_own_property_log msg
 	)
 )
@@ -110,7 +126,7 @@ fn copy_property rpr_mat conv_mat rpr_attr conv_attr =(
 		rpr_value = get_property rpr_mat rpr_attr
 		conv_value = get_property conv_mat conv_attr
 		if classof rpr_value == UndefinedClass then (
-			convObj = errorCatching convertMaterial conv_value
+			convObj = convertMaterial conv_value
 			set_property rpr_mat rpr_attr convObj
 		) else (
 			set_property rpr_mat rpr_attr conv_value
@@ -120,21 +136,7 @@ fn copy_property rpr_mat conv_mat rpr_attr conv_attr =(
 		print("Exception:" + getCurrentException())
 		print("Stack trace: " + getCurrentExceptionStackTrace())
 		msg = StringStream ""
-		format "[ERROR] Error while converting from %.% to %.%" conv_mat.name conv_attr rpr_mat.name rpr_attr to: msg
-		write_own_property_log msg
-	)
-)
-
-fn set_property obj obj_property value =(
-	try (
-		msg = StringStream ""
-		setProperty obj obj_property value
-		format "\tSet value % to %.%" value obj obj_property to: msg
-		write_own_property_log msg
-	) catch (
-		print("Exception:" + getCurrentException())
-		print("Stack trace: " + getCurrentExceptionStackTrace())
-		format "\t[ERROR] Set value % to %.% is failed. Check the values and their boundaries." value obj.name property_name to: msg
+		format "[ERROR] Error while converting from %.% to %.%" (conv_mat as string) conv_attr (rpr_mat as string) rpr_attr to: msg
 		write_own_property_log msg
 	)
 )
@@ -151,7 +153,6 @@ fn errorCatching functionName orig =(
 	out
 )
 
-
 fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 
 	if currentValue > maxInput do currentValue = maxInput
@@ -164,7 +165,6 @@ fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 
 	remapped_value
 )
-
 
 fn convertTemperature temperature =(
 	temperature = temperature / 100
@@ -204,6 +204,16 @@ fn convertTemperature temperature =(
 	(color colorR colorG colorB)
 )
 
+fn invertMap rpr_obj orig_obj rpr_map orig_map =(
+	if get_property orig_obj orig_map != undefined do (
+		arith = RPR_Arithmetic()
+		set_property arith "operator" 1
+		set_property arith "Color1" (color 255 255 255)
+		copy_property arith orig_obj "color1texmap" orig_map
+		set_property rpr_obj rpr_map arith
+	)
+)
+
 
 /* 
     MATERIALS
@@ -223,6 +233,23 @@ fn convertUnsupportedMtl origMtl =(
 	end_log origMtl
 
 	r
+)
+
+fn convertMultimaterial origMtl =(
+
+	-- log to file 
+	start_log origMtl origMtl
+
+	materialList = get_property origMtl "materialList"
+	for m=1 to materialList.count do (
+		materialList[m] = convertMaterial materialList[m]
+	)
+	set_property origMtl "materialList" materialList
+
+	-- logging
+	end_log origMtl
+
+	origMtl
 )
 
 
@@ -1172,6 +1199,7 @@ fn convertMaterial orig_mtl =(
 	cls=classof orig_mtl
 	local new_mtl=case cls of (
 		-- MATERIALS
+		Multimaterial: errorCatching convertMultimaterial orig_mtl
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
 		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl
 		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
