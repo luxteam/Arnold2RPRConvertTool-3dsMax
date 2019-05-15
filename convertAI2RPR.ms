@@ -1249,6 +1249,65 @@ fn convertArnoldLight origLight = (
 )
 
 /*
+ ENVIRONMENT CONVERSION
+*/
+
+fn convert3dsMaxEnvironment =(
+	rpr = Radeon_ProRender()
+
+	-- log to file 
+	start_log "3dsMax Environment" rpr
+
+	set_property rpr "backgroundOverride" true
+	set_property rpr "backgroundType" 0
+
+	set_property rpr "backgroundColor" backgroundColor
+	
+	if useEnvironmentMap do (
+		set_property rpr "useBackgroundMap" true
+		set_property rpr "backgroundMap" environmentMap
+	)
+
+	set_property rpr "backgroundIntensity" 1.0
+
+	-- log to file 
+	end_log "3dsMax Environment"
+
+)
+
+fn convertAiAtmosphereVolume origEnv =(
+	local r = Sphere()
+	r.name = "aiAtmosphereVolume_rpr"
+	r.scale = [10000, 10000, 10000]
+
+	-- assign volume material to sphere
+	volume_shader = RPR_Volume_Material()
+	r.material = volume_shader
+
+	copy_property volume_shader origEnv "color" "rgb_density"
+	copy_property volume_shader origEnv "colorTexmap" "rgb_density_shader"
+	copy_property volume_shader origEnv "distance" "density"
+	copy_property volume_shader origEnv "distanceTexmap" "density_shader"
+
+)
+
+fn convertAiFog origEnv =(
+	local r = Sphere()
+	r.name = "aiFog_rpr"
+	r.scale = [10000, 10000, 10000]
+
+	-- assign volume material to sphere
+	volume_shader = RPR_Volume_Material()
+	r.material = volume_shader
+
+	copy_property volume_shader origEnv "color" "color"
+	copy_property volume_shader origEnv "colorTexmap" "color_shader"
+	copy_property volume_shader origEnv "distance" "distance"
+	copy_property volume_shader origEnv "distanceTexmap" "distance_shader"
+
+)
+
+/*
  CONVERT FUNCTIONS
 */
 
@@ -1298,8 +1357,6 @@ fn convertMaterial orig_mtl =(
 		ai_switch_shader: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_trace_set: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_volume: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_atmosphere_volume: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_fog: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_float: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_int: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_rgb: errorCatching convertUnsupportedMtl orig_mtl 
@@ -1410,25 +1467,16 @@ fn convertMaterial orig_mtl =(
 )
 
 fn convertEnvironment =(
-	rpr = Radeon_ProRender()
-
-	-- log to file 
-	start_log "3dsMax Environment" rpr
-
-	set_property rpr "backgroundOverride" true
-	set_property rpr "backgroundType" 0
-
-	set_property rpr "backgroundColor" backgroundColor
 	
-	if useEnvironmentMap do (
-		set_property rpr "useBackgroundMap" true
-		set_property rpr "backgroundMap" environmentMap
+	-- fog and atmosphere conversion
+	env = get_property renderers.current "atmosphere"
+	cls = classof env
+	case cls of (
+		ai_fog: errorCatching convertAiFog env 
+		ai_atmosphere_volume: errorCatching convertAiAtmosphereVolume env 
 	)
 
-	set_property rpr "backgroundIntensity" 1.0
-
-	-- log to file 
-	end_log "3dsMax Environment"
+	convert3dsMaxEnvironment()
 )
 
 fn cleanUpConversionData =(
