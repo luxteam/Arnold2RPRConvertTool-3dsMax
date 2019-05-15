@@ -959,6 +959,22 @@ fn convertAiAO origMap = (
 	r
 )
 
+fn convertAiFlat origMap = (
+	local r = rpr_color_value()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	copy_property r origMap "Color" "color"
+	copy_property r origMap "colorTexmap" "color_shader"
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
 fn convertAiMixRGBA origMap = (
 	local r = rpr_blend_value()
 	r.name = origMap.name + rprPostfixStr
@@ -1297,6 +1313,7 @@ fn convertMaterial orig_mtl =(
 		ai_color_correct: errorCatching convertAiColorCorrect orig_mtl
 		ai_shadow_matte: errorCatching convertAiShadowMatte orig_mtl 
 		ai_blackbody: errorCatching convertAiBlackbody orig_mtl
+		ai_flat: errorCatching convertAiFlat orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1352,7 +1369,6 @@ fn convertMaterial orig_mtl =(
 		ai_clamp: errorCatching convertUnsupportedUtility orig_mtl
 		ai_curvature: errorCatching convertUnsupportedUtility orig_mtl
 		ai_facing_ratio: errorCatching convertUnsupportedUtility orig_mtl
-		ai_flat: errorCatching convertUnsupportedUtility orig_mtl
 		ai_motion_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_ray_switch_rgba: errorCatching convertUnsupportedUtility orig_mtl
 		ai_switch_rgba: errorCatching convertUnsupportedUtility orig_mtl
