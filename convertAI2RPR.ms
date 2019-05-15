@@ -545,6 +545,46 @@ fn convertAiMixShader origMtl =(
 	r
 )
 
+fn convertAiShadowMatte origMtl =(
+	local r = rpr_shadow_catcher_material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+
+
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+fn convertAiBlackbody origMtl =(
+	local r = rpr_emissive_material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+	set_property r "IntMode" 0
+	set_property r "ColorMode" 1
+	copy_property r origMtl "Kelvin" "temperature"
+
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+fn convertArnoldMapToMtl origMtl =(
+
+	local mtl = get_property origMtl "SurfaceShader"
+	local newMtl = convertMaterial mtl
+
+	newMtl
+)
+
 /* 
     UTILITIES
 */
@@ -1193,24 +1233,24 @@ fn convertLight orig_light =(
 
 fn convertMaterial orig_mtl =(
 		
-	local i=findItem orig_mtls orig_mtl -- check if we have already converted this material
-	if i>0 then return new_mtls[i]  --if yes, just return the already converted one	
+	local i = findItem orig_mtls orig_mtl -- check if we have already converted this material
+	if i > 0 then return new_mtls[i]  --if yes, just return the already converted one	
 	
-	cls=classof orig_mtl
-	local new_mtl=case cls of (
+	cls = classof orig_mtl
+	local new_mtl = case cls of (
 		-- MATERIALS
 		Multimaterial: errorCatching convertMultimaterial orig_mtl
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
 		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl
 		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
 		ai_mix_shader: errorCatching convertAiMixShader orig_mtl 
+		ArnoldMapToMtl: errorCatching convertArnoldMapToMtl orig_mtl 
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
 		ai_lambert: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_matte: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_hair: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_two_sided: errorCatching convertUnsupportedMtl orig_mtl 
-		ArnoldMapToMtl: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_passthrough: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_ray_switch_shader: errorCatching convertUnsupportedMtl orig_mtl
 		ai_switch_shader: errorCatching convertUnsupportedMtl orig_mtl 
@@ -1247,7 +1287,8 @@ fn convertMaterial orig_mtl =(
 		ai_modulo: errorCatching convertAiModulo orig_mtl
 		ai_mix_rgba: errorCatching convertAiMixRGBA orig_mtl	
 		ai_color_correct: errorCatching convertAiColorCorrect orig_mtl
-
+		ai_shadow_matte: errorCatching convertAiShadowMatte orig_mtl 
+		ai_blackbody: errorCatching convertAiBlackbody orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1282,7 +1323,6 @@ fn convertMaterial orig_mtl =(
 		ai_state_int: errorCatching convertUnsupportedUtility orig_mtl
 		ai_state_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_complex_ior: errorCatching convertUnsupportedUtility orig_mtl
-		ai_shadow_matte: errorCatching convertUnsupportedUtility orig_mtl
 		ai_flakes: errorCatching convertUnsupportedUtility orig_mtl
 		ai_toon: errorCatching convertUnsupportedUtility orig_mtl
 		ai_noise: errorCatching convertUnsupportedUtility orig_mtl
@@ -1300,7 +1340,6 @@ fn convertMaterial orig_mtl =(
 		ai_user_data_float: errorCatching convertUnsupportedUtility orig_mtl
 		ai_user_data_int: errorCatching convertUnsupportedUtility orig_mtl
 		ai_user_data_string: errorCatching convertUnsupportedUtility orig_mtl
-		ai_blackbody: errorCatching convertUnsupportedUtility orig_mtl
 		ai_cache: errorCatching convertUnsupportedUtility orig_mtl
 		ai_clamp: errorCatching convertUnsupportedUtility orig_mtl
 		ai_curvature: errorCatching convertUnsupportedUtility orig_mtl
