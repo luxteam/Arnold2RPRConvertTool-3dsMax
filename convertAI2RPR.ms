@@ -552,7 +552,15 @@ fn convertAiShadowMatte origMtl =(
 	-- log to file 
 	start_log origMtl r
 
+	set_property r "BackgroundIsEnvironment" true
+	set_property r "BackgroundTrancparencyMul" 0
+	copy_property r origMtl "BackgroundColor" "background_color"
+	copy_property r origMtl "BackgroundColorTexmap" "background_color_shader"
 
+	copy_property r origMtl "ShadowColor" "shadow_color"
+	copy_property r origMtl "ShadowColorTexmap" "shadow_color_shader"
+	set_property r "ShadowAlphaMul" (1 - get_property origMtl "shadow_opacity")
+	
 
 	-- logging
 	end_log origMtl
