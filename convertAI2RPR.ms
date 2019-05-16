@@ -214,6 +214,25 @@ fn invertMap rpr_obj orig_obj rpr_map orig_map =(
 	)
 )
 
+fn getBBoxPoints obj = (
+	local bbPoints = #()
+
+	local bbMax = obj.max
+	local bbMin = obj.min
+
+	append bbPoints (Point3 bbMax.x bbMax.y bbMax.z)	-- top-right-front corner
+	append bbPoints (Point3 bbMax.x bbMin.y bbMax.z)	-- top-right-back corner
+	append bbPoints (Point3 bbMin.x bbMin.y bbMax.z)	-- top-left-back corner
+	append bbPoints (Point3 bbMin.x bbMax.y bbMax.z)	-- top-left-front corner
+	
+	append bbPoints (Point3 bbMax.x bbMax.y bbMin.z)	-- bottom-right-front corner
+	append bbPoints (Point3 bbMax.x bbMin.y bbMin.z)	-- bottom-right-back corner
+	append bbPoints (Point3 bbMin.x bbMin.y bbMin.z)	-- bottom-left-back corner
+	append bbPoints (Point3 bbMin.x bbMax.y bbMin.z)	-- bottom-left-front corner
+	
+	return bbPoints
+)
+
 
 /* 
     MATERIALS
@@ -554,8 +573,13 @@ fn convertAiShadowMatte origMtl =(
 
 	set_property r "BackgroundIsEnvironment" true
 	set_property r "BackgroundTrancparencyMul" 0
-	copy_property r origMtl "BackgroundColor" "background_color"
-	copy_property r origMtl "BackgroundColorTexmap" "background_color_shader"
+
+	if get_property origMtl "background" then (
+		copy_property r origMtl "BackgroundColor" "background_color"
+		copy_property r origMtl "BackgroundColorTexmap" "background_color_shader"
+	) else (
+		copy_property r origMtl "BackgroundColorTexmap" "background_shader"
+	)
 
 	copy_property r origMtl "ShadowColor" "shadow_color"
 	copy_property r origMtl "ShadowColorTexmap" "shadow_color_shader"
@@ -1292,7 +1316,7 @@ fn convertAiAtmosphereVolume origEnv =(
 )
 
 fn convertAiFog origEnv =(
-	local r = Sphere()
+	local r = Box()
 	r.name = "aiFog_rpr"
 	r.scale = [10000, 10000, 10000]
 
