@@ -324,8 +324,6 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "RefractionColor" "transmission_color"
 	copy_property r origMtl "RefractionColorTexmap" "transmission_color_shader"
 
-	copy_property r origMtl "RefractionRoughness" "specular_roughness"
-	copy_property r origMtl "RefractionRoughnessTexmap" "specular_roughness_shader"
 	copy_property r origMtl "RefractionThinSurface" "thin_walled"
 	copy_property r origMtl "RefractionIor" "specular_IOR"
 	copy_property r origMtl "RefractionIorTexmap" "specular_IOR_shader"
@@ -1218,6 +1216,8 @@ fn convertPhysicalLight origLight = (
 	) else if light_type == 2 then ( -- spot
 		set_property r "lightType" 1
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
+		copy_property r origLight "OuterConeFalloff" "Cone_Angle"
+		set_property r "InnerConeAngle" (-0.986 * get_property origLight "penumbra_angle" + get_property origLight "Cone_Angle")
 	) else ( -- area
 		set_property r "lightType" 0
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
@@ -1512,8 +1512,10 @@ fn cleanUpConversionData =(
 	delete (for elem in orig_lights where (superclassof elem == light) and isvalidnode elem collect elem) 
 
 	-- delete AOVs
-	re = maxOps.GetCurRenderElementMgr()
-    re.removeallrenderelements()
+	try (
+		re = maxOps.GetCurRenderElementMgr()
+	    re.removeallrenderelements()
+	) catch ()
 
 	orig_mtls=#()
 	new_mtls=#()
