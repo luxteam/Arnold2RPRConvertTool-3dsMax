@@ -1117,6 +1117,9 @@ fn convertIesLight origLight = (
 	copy_property r origLight "pivot" "pivot"
 	copy_property r origLight "transform" "transform"
 	copy_property r origLight "dir" "dir"
+	copy_property r origLight "ishidden" "ishidden"
+
+	copy_property r origLight "AreaWidth" "photometricRadius"
 
 	-- ies file
 	filename = get_property origLight "filename"
@@ -1137,7 +1140,8 @@ fn convertIesLight origLight = (
 	) else (
 		set_property r "colorMode" 1
 	)
-	rpr_intensity = get_property origLight "intensity" * (get_property origLight "exposure" + 5.0) / 1070.0
+	ai_res_int = get_property origLight "intensity"
+	rpr_intensity = 0.0001 * ai_res_int ^ 3 + 0.0082 * ai_res_int ^ 2 + 0.3116 * ai_res_int + 0.7513
 	set_property r "intensity" rpr_intensity
 	copy_property r origLight "color" "color"
 	copy_property r origLight "temperature" "kelvin"
