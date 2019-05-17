@@ -569,14 +569,23 @@ fn convertAiShadowMatte origMtl =(
 	-- log to file 
 	start_log origMtl r
 
-	set_property r "BackgroundIsEnvironment" true
 	set_property r "BackgroundTrancparencyMul" 0
 
 	if get_property origMtl "background" then (
+		set_property r "BackgroundIsEnvironment" false
 		copy_property r origMtl "BackgroundColor" "background_color"
 		copy_property r origMtl "BackgroundColorTexmap" "background_color_shader"
 	) else (
-		copy_property r origMtl "BackgroundColorTexmap" "background_shader"
+		set_property r "BackgroundIsEnvironment" true
+		domeLight = for o in objects where superclassof o == light and get_property o "category" == #Arnold and get_property o "shapeType" == 6 collect o
+		print(domeLight)
+		if domeLight.count > 0 and get_property domeLight[1] "texmap" != undefined then (
+			background_map = get_property domeLight[1] "texmap"
+		) else (
+			background_map = environmentMap
+		)
+		print(background_map)
+		set_property r "BackgroundColorTexmap" background_map
 	)
 
 	copy_property r origMtl "ShadowColor" "shadow_color"
@@ -1537,6 +1546,9 @@ fn convertScene =(
 	start = timeStamp()
 
 	startConversion()
+
+	ai = Arnold()
+	if classof renderers.current != classof ai do renderers.current = ai
 
 	-- Environment conversion
 	convertEnvironment()
