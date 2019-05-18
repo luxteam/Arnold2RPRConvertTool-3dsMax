@@ -280,7 +280,7 @@ fn convertAiStandardSurface origMtl =(
 	start_log origMtl r
 
 	-- diffuse
-	if get_property origMtl "base" > 0 or get_property origMtl "base_color_shader" != undefined do (set_property r "DiffuseEnable" true)
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
 	copy_property r origMtl "DiffuseColor" "base_color"
 	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
 	copy_property r origMtl "DiffuseWeight" "base"
@@ -291,7 +291,7 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "RefractionAllowCaustics" "caustics"
 	
 	-- reflection
-	if get_property origMtl "specular" > 0 or get_property origMtl "specular_color_shader" != undefined do (set_property r "reflectionEnable" true)
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "reflectionEnable" true)
 	copy_property r origMtl "reflectionColor" "specular_color"
 	copy_property r origMtl "reflectionColorTexmap" "specular_color_shader"
 	copy_property r origMtl "reflectionWeight" "specular"
@@ -435,7 +435,7 @@ fn convertAiCarPaint origMtl =(
 	start_log origMtl r
 
 	-- diffuse
-	if get_property origMtl "base" > 0 or get_property origMtl "base_color_shader" != undefined do (set_property r "DiffuseEnable" true)
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
 	copy_property r origMtl "DiffuseColor" "base_color"
 	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
 	copy_property r origMtl "DiffuseWeight" "base"
@@ -444,7 +444,7 @@ fn convertAiCarPaint origMtl =(
 	copy_property r origMtl "DiffuseRoughnessTexmap" "base_roughness_shader"
 	
 	-- reflection
-	if get_property origMtl "specular" > 0 or get_property origMtl "specular_color_shader" != undefined do (set_property r "reflectionEnable" true)
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "reflectionEnable" true)
 	copy_property r origMtl "reflectionColor" "specular_color"
 	copy_property r origMtl "reflectionColorTexmap" "specular_color_shader"
 	copy_property r origMtl "reflectionWeight" "specular"
@@ -578,13 +578,11 @@ fn convertAiShadowMatte origMtl =(
 	) else (
 		set_property r "BackgroundIsEnvironment" true
 		domeLight = for o in objects where superclassof o == light and get_property o "category" == #Arnold and get_property o "shapeType" == 6 collect o
-		print(domeLight)
 		if domeLight.count > 0 and get_property domeLight[1] "texmap" != undefined then (
 			background_map = get_property domeLight[1] "texmap"
 		) else (
 			background_map = environmentMap
 		)
-		print(background_map)
 		set_property r "BackgroundColorTexmap" background_map
 	)
 
@@ -609,6 +607,63 @@ fn convertAiBlackbody origMtl =(
 	set_property r "IntMode" 0
 	set_property r "ColorMode" 1
 	copy_property r origMtl "Kelvin" "temperature"
+
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+fn convertAiToon origMtl = (
+	local r = RPR_Uber_Material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+	-- diffuse
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
+	copy_property r origMtl "DiffuseWeight" "base"
+	copy_property r origMtl "DiffuseWeightTexmap" "base_shader"
+	copy_property r origMtl "DiffuseColor" "base_color"
+	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
+
+	-- reflection 
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "ReflectionEnable" true)
+	copy_property r origMtl "ReflectionWeight" "specular"
+	copy_property r origMtl "ReflectionWeightTexmap" "specular_shader"
+	copy_property r origMtl "ReflectionColor" "specular_color"
+	copy_property r origMtl "ReflectionColorTexmap" "specular_color_shader"
+	copy_property r origMtl "ReflectionRoughness" "specular_roughness"
+	copy_property r origMtl "ReflectionRoughnessTexmap" "specular_roughness_shader"
+	copy_property r origMtl "ReflectionAnisotropy" "specular_anisotropy"
+	copy_property r origMtl "ReflectionAnisotropyTexmap" "specular_anisotropy_shader"
+	copy_property r origMtl "ReflectionAnisotropyRotation" "specular_rotation"
+	copy_property r origMtl "ReflectionAnisotropyRotationTexmap" "specular_rotation_shader"
+
+	-- refraction 
+	if get_property origMtl "transmission" > 0 or get_property origMtl "transmission_shader" != undefined do (set_property r "RefractionEnable" true)
+	copy_property r origMtl "RefractionWeight" "transmission"
+	copy_property r origMtl "RefractionWeightTexmap" "transmission_shader"
+	copy_property r origMtl "RefractionColor" "transmission_color"
+	copy_property r origMtl "RefractionColorTexmap" "transmission_color_shader"
+	copy_property r origMtl "RefractionRoughness" "transmission_roughness"
+	copy_property r origMtl "RefractionRoughnessTexmap" "transmission_roughness_shader"
+	copy_property r origMtl "RefractionIor" "IOR"
+	copy_property r origMtl "RefractionIorTexmap" "IOR_shader"
+
+	-- emission 
+	if get_property origMtl "emission" > 0 or get_property origMtl "emission_shader" != undefined do (set_property r "EmissiveEnable" true)
+	copy_property r origMtl "EmissiveWeight" "emission"
+	copy_property r origMtl "EmissiveWeightTexmap" "emission_shader"
+	copy_property r origMtl "EmissiveColor" "emission_color"
+	copy_property r origMtl "EmissiveColorTexmap" "emission_color_shader"
+
+	-- normal 
+	if get_property origMtl "normal_shader" != undefined do (
+		set_property r "NormalEnable" true
+		copy_property r origMtl "NormalTexmap" "normal_shader"
+	)
 
 	-- logging
 	end_log origMtl
@@ -1427,6 +1482,7 @@ fn convertMaterial orig_mtl =(
 		ai_blackbody: errorCatching convertAiBlackbody orig_mtl
 		ai_flat: errorCatching convertAiFlat orig_mtl
 		ai_negate: errorCatching convertAiNegate orig_mtl
+		ai_toon: errorCatching convertAiToon orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1461,7 +1517,6 @@ fn convertMaterial orig_mtl =(
 		ai_state_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_complex_ior: errorCatching convertUnsupportedUtility orig_mtl
 		ai_flakes: errorCatching convertUnsupportedUtility orig_mtl
-		ai_toon: errorCatching convertUnsupportedUtility orig_mtl
 		ai_noise: errorCatching convertUnsupportedUtility orig_mtl
 		ai_camera_projection: errorCatching convertUnsupportedUtility orig_mtl
 		ai_cell_noise: errorCatching convertUnsupportedUtility orig_mtl
