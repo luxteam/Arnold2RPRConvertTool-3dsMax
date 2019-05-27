@@ -92,6 +92,10 @@ fn end_log conv_obj =(
 	write_own_property_log msg
 )
 
+
+fn convertMaterial orig_mtl =()
+
+
 fn get_property value_mat value_attr =(
 	try (
 		obj_value = getProperty value_mat value_attr
@@ -100,7 +104,21 @@ fn get_property value_mat value_attr =(
 		print("Exception:" + getCurrentException())
 		print("Stack trace: " + getCurrentExceptionStackTrace())
 		msg = StringStream ""
-		format "[ERROR] There is no %.% field in this node. Check the field and try again." value_mat.name value_attr to: msg
+		format "[ERROR] There is no %.% field in this node. Check the field and try again." (value_mat as string) value_attr to: msg
+		write_own_property_log msg
+	)
+)
+
+fn set_property obj obj_property value =(
+	try (
+		msg = StringStream ""
+		setProperty obj obj_property value
+		format "\tSet value % to %.%" value (obj as string) obj_property to: msg
+		write_own_property_log msg
+	) catch (
+		print("Exception:" + getCurrentException())
+		print("Stack trace: " + getCurrentExceptionStackTrace())
+		format "\t[ERROR] Set value % to %.% is failed. Check the values and their boundaries." value (obj as string) obj_property to: msg
 		write_own_property_log msg
 	)
 )
@@ -110,7 +128,7 @@ fn copy_property rpr_mat conv_mat rpr_attr conv_attr =(
 		rpr_value = get_property rpr_mat rpr_attr
 		conv_value = get_property conv_mat conv_attr
 		if classof rpr_value == UndefinedClass then (
-			convObj = errorCatching convertMaterial conv_value
+			convObj = convertMaterial conv_value
 			set_property rpr_mat rpr_attr convObj
 		) else (
 			set_property rpr_mat rpr_attr conv_value
@@ -120,21 +138,7 @@ fn copy_property rpr_mat conv_mat rpr_attr conv_attr =(
 		print("Exception:" + getCurrentException())
 		print("Stack trace: " + getCurrentExceptionStackTrace())
 		msg = StringStream ""
-		format "[ERROR] Error while converting from %.% to %.%" conv_mat.name conv_attr rpr_mat.name rpr_attr to: msg
-		write_own_property_log msg
-	)
-)
-
-fn set_property obj obj_property value =(
-	try (
-		msg = StringStream ""
-		setProperty obj obj_property value
-		format "\tSet value % to %.%" value obj obj_property to: msg
-		write_own_property_log msg
-	) catch (
-		print("Exception:" + getCurrentException())
-		print("Stack trace: " + getCurrentExceptionStackTrace())
-		format "\t[ERROR] Set value % to %.% is failed. Check the values and their boundaries." value obj.name property_name to: msg
+		format "[ERROR] Error while converting from %.% to %.%" (conv_mat as string) conv_attr (rpr_mat as string) rpr_attr to: msg
 		write_own_property_log msg
 	)
 )
@@ -151,7 +155,6 @@ fn errorCatching functionName orig =(
 	out
 )
 
-
 fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 
 	if currentValue > maxInput do currentValue = maxInput
@@ -163,6 +166,73 @@ fn remap_value currentValue maxInput minInput maxOutput minOutput =(
 	remapped_value = minOutput + (((currentValue - minInput) as float / (inputDiff) as float) * outputDiff)
 
 	remapped_value
+)
+
+fn convertTemperature temperature =(
+	temperature = temperature / 100
+
+	if temperature <= 66 then (
+		colorR = 255
+	) else (
+		colorR = temperature - 60
+		colorR = 329.698727446 * colorR ^ -0.1332047592
+		if colorR < 0 do colorR = 0
+		if colorR > 255 do colorR = 255
+	)
+
+	if temperature <= 66 then (
+		colorG = temperature
+		colorG = 99.4708025861 * log colorG - 161.1195681661
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	) else (
+		colorG = temperature - 60
+		colorG = 288.1221695283 * colorG ^ -0.0755148492
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	)
+
+	if temperature >= 66 then (
+		colorB = 255
+	) else if temperature <= 19 then (
+		colorB = 0
+	) else (
+		colorB = temperature - 10
+		colorB = 138.5177312231 * log colorB - 305.0447927307
+		if colorB < 0 do colorB = 0
+		if colorB > 255 do colorB = 255
+	)
+
+	(color colorR colorG colorB)
+)
+
+fn invertMap rpr_obj orig_obj rpr_map orig_map =(
+	if get_property orig_obj orig_map != undefined do (
+		arith = RPR_Arithmetic()
+		set_property arith "operator" 1
+		set_property arith "Color1" (color 255 255 255)
+		copy_property arith orig_obj "color1texmap" orig_map
+		set_property rpr_obj rpr_map arith
+	)
+)
+
+fn getBBoxPoints obj = (
+	local bbPoints = #()
+
+	local bbMax = obj.max
+	local bbMin = obj.min
+
+	append bbPoints (Point3 bbMax.x bbMax.y bbMax.z)	-- top-right-front corner
+	append bbPoints (Point3 bbMax.x bbMin.y bbMax.z)	-- top-right-back corner
+	append bbPoints (Point3 bbMin.x bbMin.y bbMax.z)	-- top-left-back corner
+	append bbPoints (Point3 bbMin.x bbMax.y bbMax.z)	-- top-left-front corner
+	
+	append bbPoints (Point3 bbMax.x bbMax.y bbMin.z)	-- bottom-right-front corner
+	append bbPoints (Point3 bbMax.x bbMin.y bbMin.z)	-- bottom-right-back corner
+	append bbPoints (Point3 bbMin.x bbMin.y bbMin.z)	-- bottom-left-back corner
+	append bbPoints (Point3 bbMin.x bbMax.y bbMin.z)	-- bottom-left-front corner
+	
+	return bbPoints
 )
 
 
@@ -225,6 +295,23 @@ fn convertUnsupportedMtl origMtl =(
 	r
 )
 
+fn convertMultimaterial origMtl =(
+
+	-- log to file 
+	start_log origMtl origMtl
+
+	materialList = get_property origMtl "materialList"
+	for m=1 to materialList.count do (
+		materialList[m] = convertMaterial materialList[m]
+	)
+	set_property origMtl "materialList" materialList
+
+	-- logging
+	end_log origMtl
+
+	origMtl
+)
+
 
 fn convertAiStandardSurface origMtl =(
 	local r = RPR_Uber_Material()
@@ -234,7 +321,7 @@ fn convertAiStandardSurface origMtl =(
 	start_log origMtl r
 
 	-- diffuse
-	if get_property origMtl "base" > 0 or get_property origMtl "base_color_shader" != undefined do (set_property r "DiffuseEnable" true)
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
 	copy_property r origMtl "DiffuseColor" "base_color"
 	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
 	copy_property r origMtl "DiffuseWeight" "base"
@@ -245,7 +332,7 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "RefractionAllowCaustics" "caustics"
 	
 	-- reflection
-	if get_property origMtl "specular" > 0 or get_property origMtl "specular_color_shader" != undefined do (set_property r "reflectionEnable" true)
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "reflectionEnable" true)
 	copy_property r origMtl "reflectionColor" "specular_color"
 	copy_property r origMtl "reflectionColorTexmap" "specular_color_shader"
 	copy_property r origMtl "reflectionWeight" "specular"
@@ -278,8 +365,6 @@ fn convertAiStandardSurface origMtl =(
 	copy_property r origMtl "RefractionColor" "transmission_color"
 	copy_property r origMtl "RefractionColorTexmap" "transmission_color_shader"
 
-	copy_property r origMtl "RefractionRoughness" "specular_roughness"
-	copy_property r origMtl "RefractionRoughnessTexmap" "specular_roughness_shader"
 	copy_property r origMtl "RefractionThinSurface" "thin_walled"
 	copy_property r origMtl "RefractionIor" "specular_IOR"
 	copy_property r origMtl "RefractionIorTexmap" "specular_IOR_shader"
@@ -391,7 +476,7 @@ fn convertAiCarPaint origMtl =(
 	start_log origMtl r
 
 	-- diffuse
-	if get_property origMtl "base" > 0 or get_property origMtl "base_color_shader" != undefined do (set_property r "DiffuseEnable" true)
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
 	copy_property r origMtl "DiffuseColor" "base_color"
 	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
 	copy_property r origMtl "DiffuseWeight" "base"
@@ -400,7 +485,7 @@ fn convertAiCarPaint origMtl =(
 	copy_property r origMtl "DiffuseRoughnessTexmap" "base_roughness_shader"
 	
 	-- reflection
-	if get_property origMtl "specular" > 0 or get_property origMtl "specular_color_shader" != undefined do (set_property r "reflectionEnable" true)
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "reflectionEnable" true)
 	copy_property r origMtl "reflectionColor" "specular_color"
 	copy_property r origMtl "reflectionColorTexmap" "specular_color_shader"
 	copy_property r origMtl "reflectionWeight" "specular"
@@ -516,6 +601,125 @@ fn convertAiMixShader origMtl =(
 	end_log origMtl
 
 	r
+)
+
+fn convertAiShadowMatte origMtl =(
+	local r = rpr_shadow_catcher_material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+	set_property r "BackgroundTrancparencyMul" 0
+
+	if get_property origMtl "background" then (
+		set_property r "BackgroundIsEnvironment" false
+		copy_property r origMtl "BackgroundColor" "background_color"
+		copy_property r origMtl "BackgroundColorTexmap" "background_color_shader"
+	) else (
+		set_property r "BackgroundIsEnvironment" true
+		domeLight = for o in objects where superclassof o == light and get_property o "category" == #Arnold and get_property o "shapeType" == 6 collect o
+		if domeLight.count > 0 and get_property domeLight[1] "texmap" != undefined then (
+			background_map = get_property domeLight[1] "texmap"
+		) else (
+			background_map = environmentMap
+		)
+		set_property r "BackgroundColorTexmap" background_map
+
+	)
+
+	copy_property r origMtl "ShadowColor" "shadow_color"
+	copy_property r origMtl "ShadowColorTexmap" "shadow_color_shader"
+	set_property r "ShadowAlphaMul" (1 - get_property origMtl "shadow_opacity")
+	
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+
+fn convertAiBlackbody origMtl =(
+	local r = rpr_emissive_material()
+
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+	set_property r "IntMode" 0
+	set_property r "ColorMode" 1
+	copy_property r origMtl "Kelvin" "temperature"
+
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+fn convertAiToon origMtl = (
+	local r = RPR_Uber_Material()
+	r.name = origMtl.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMtl r
+
+	-- diffuse
+	if get_property origMtl "base" > 0 or get_property origMtl "base_shader" != undefined do (set_property r "DiffuseEnable" true)
+	copy_property r origMtl "DiffuseWeight" "base"
+	copy_property r origMtl "DiffuseWeightTexmap" "base_shader"
+	copy_property r origMtl "DiffuseColor" "base_color"
+	copy_property r origMtl "DiffuseColorTexmap" "base_color_shader"
+
+	-- reflection 
+	if get_property origMtl "specular" > 0 or get_property origMtl "specular_shader" != undefined do (set_property r "ReflectionEnable" true)
+	copy_property r origMtl "ReflectionWeight" "specular"
+	copy_property r origMtl "ReflectionWeightTexmap" "specular_shader"
+	copy_property r origMtl "ReflectionColor" "specular_color"
+	copy_property r origMtl "ReflectionColorTexmap" "specular_color_shader"
+	copy_property r origMtl "ReflectionRoughness" "specular_roughness"
+	copy_property r origMtl "ReflectionRoughnessTexmap" "specular_roughness_shader"
+	copy_property r origMtl "ReflectionAnisotropy" "specular_anisotropy"
+	copy_property r origMtl "ReflectionAnisotropyTexmap" "specular_anisotropy_shader"
+	copy_property r origMtl "ReflectionAnisotropyRotation" "specular_rotation"
+	copy_property r origMtl "ReflectionAnisotropyRotationTexmap" "specular_rotation_shader"
+
+	-- refraction 
+	if get_property origMtl "transmission" > 0 or get_property origMtl "transmission_shader" != undefined do (set_property r "RefractionEnable" true)
+	copy_property r origMtl "RefractionWeight" "transmission"
+	copy_property r origMtl "RefractionWeightTexmap" "transmission_shader"
+	copy_property r origMtl "RefractionColor" "transmission_color"
+	copy_property r origMtl "RefractionColorTexmap" "transmission_color_shader"
+	copy_property r origMtl "RefractionRoughness" "transmission_roughness"
+	copy_property r origMtl "RefractionRoughnessTexmap" "transmission_roughness_shader"
+	copy_property r origMtl "RefractionIor" "IOR"
+	copy_property r origMtl "RefractionIorTexmap" "IOR_shader"
+
+	-- emission 
+	if get_property origMtl "emission" > 0 or get_property origMtl "emission_shader" != undefined do (set_property r "EmissiveEnable" true)
+	copy_property r origMtl "EmissiveWeight" "emission"
+	copy_property r origMtl "EmissiveWeightTexmap" "emission_shader"
+	copy_property r origMtl "EmissiveColor" "emission_color"
+	copy_property r origMtl "EmissiveColorTexmap" "emission_color_shader"
+
+	-- normal 
+	if get_property origMtl "normal_shader" != undefined do (
+		set_property r "NormalEnable" true
+		copy_property r origMtl "NormalTexmap" "normal_shader"
+	)
+
+	-- logging
+	end_log origMtl
+
+	r
+)
+
+fn convertArnoldMapToMtl origMtl =(
+
+	local mtl = get_property origMtl "SurfaceShader"
+	local newMtl = convertMaterial mtl
+
+	newMtl
 )
 
 /* 
@@ -884,6 +1088,42 @@ fn convertAiAO origMap = (
 	r
 )
 
+
+fn convertAiNegate origMap = (
+	local r = rpr_arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	set_property r "operator" 1
+	set_property r "Color1" (color 255 255 255)
+	copy_property r origMap "Color2" "input"
+	copy_property r origMap "color1texmap" "input_shader"
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
+fn convertAiFlat origMap = (
+	local r = rpr_color_value()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	copy_property r origMap "Color" "color"
+	copy_property r origMap "colorTexmap" "color_shader"
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
+
 fn convertAiMixRGBA origMap = (
 	local r = rpr_blend_value()
 	r.name = origMap.name + rprPostfixStr
@@ -984,6 +1224,9 @@ fn convertIesLight origLight = (
 	copy_property r origLight "pivot" "pivot"
 	copy_property r origLight "transform" "transform"
 	copy_property r origLight "dir" "dir"
+	copy_property r origLight "ishidden" "ishidden"
+
+	copy_property r origLight "AreaWidth" "photometricRadius"
 
 	-- ies file
 	filename = get_property origLight "filename"
@@ -1004,7 +1247,9 @@ fn convertIesLight origLight = (
 	) else (
 		set_property r "colorMode" 1
 	)
-	rpr_intensity = get_property origLight "intensity" * (get_property origLight "exposure" + 5.0) / 1070.0
+
+	ai_res_int = get_property origLight "intensity"
+	rpr_intensity = 0.0001 * ai_res_int ^ 3 + 0.0082 * ai_res_int ^ 2 + 0.3116 * ai_res_int + 0.7513
 	set_property r "intensity" rpr_intensity
 	copy_property r origLight "color" "color"
 	copy_property r origLight "temperature" "kelvin"
@@ -1081,6 +1326,10 @@ fn convertPhysicalLight origLight = (
 	) else if light_type == 2 then ( -- spot
 		set_property r "lightType" 1
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
+
+		copy_property r origLight "OuterConeFalloff" "Cone_Angle"
+		set_property r "InnerConeAngle" (-0.986 * get_property origLight "penumbra_angle" + get_property origLight "Cone_Angle")
+
 	) else ( -- area
 		set_property r "lightType" 0
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
@@ -1140,6 +1389,65 @@ fn convertArnoldLight origLight = (
 )
 
 /*
+ ENVIRONMENT CONVERSION
+*/
+
+fn convert3dsMaxEnvironment =(
+	rpr = Radeon_ProRender()
+
+	-- log to file 
+	start_log "3dsMax Environment" rpr
+
+	set_property rpr "backgroundOverride" true
+	set_property rpr "backgroundType" 0
+
+	set_property rpr "backgroundColor" backgroundColor
+	
+	if useEnvironmentMap do (
+		set_property rpr "useBackgroundMap" true
+		set_property rpr "backgroundMap" environmentMap
+	)
+
+	set_property rpr "backgroundIntensity" 1.0
+
+	-- log to file 
+	end_log "3dsMax Environment"
+
+)
+
+fn convertAiAtmosphereVolume origEnv =(
+	local r = Sphere()
+	r.name = "aiAtmosphereVolume_rpr"
+	r.scale = [10000, 10000, 10000]
+
+	-- assign volume material to sphere
+	volume_shader = RPR_Volume_Material()
+	r.material = volume_shader
+
+	copy_property volume_shader origEnv "color" "rgb_density"
+	copy_property volume_shader origEnv "colorTexmap" "rgb_density_shader"
+	copy_property volume_shader origEnv "distance" "density"
+	copy_property volume_shader origEnv "distanceTexmap" "density_shader"
+
+)
+
+fn convertAiFog origEnv =(
+	local r = Box()
+	r.name = "aiFog_rpr"
+	r.scale = [10000, 10000, 10000]
+
+	-- assign volume material to sphere
+	volume_shader = RPR_Volume_Material()
+	r.material = volume_shader
+
+	copy_property volume_shader origEnv "color" "color"
+	copy_property volume_shader origEnv "colorTexmap" "color_shader"
+	copy_property volume_shader origEnv "distance" "distance"
+	copy_property volume_shader origEnv "distanceTexmap" "distance_shader"
+
+)
+
+/*
  CONVERT FUNCTIONS
 */
 
@@ -1166,30 +1474,29 @@ fn convertLight orig_light =(
 
 fn convertMaterial orig_mtl =(
 		
-	local i=findItem orig_mtls orig_mtl -- check if we have already converted this material
-	if i>0 then return new_mtls[i]  --if yes, just return the already converted one	
+	local i = findItem orig_mtls orig_mtl -- check if we have already converted this material
+	if i > 0 then return new_mtls[i]  --if yes, just return the already converted one	
 	
-	cls=classof orig_mtl
-	local new_mtl=case cls of (
+	cls = classof orig_mtl
+	local new_mtl = case cls of (
 		-- MATERIALS
+		Multimaterial: errorCatching convertMultimaterial orig_mtl
 		ai_standard_surface: errorCatching convertAiStandardSurface orig_mtl
 		ai_layer_shader: errorCatching convertAiLayerShader orig_mtl
 		ai_car_paint: errorCatching convertAiCarPaint orig_mtl
 		ai_mix_shader: errorCatching convertAiMixShader orig_mtl 
+		ArnoldMapToMtl: errorCatching convertArnoldMapToMtl orig_mtl 
 		 
 		--following materials will be replaced with default green rpr uber mat, will be supported later
 		ai_lambert: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_matte: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_hair: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_two_sided: errorCatching convertUnsupportedMtl orig_mtl 
-		ArnoldMapToMtl: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_passthrough: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_ray_switch_shader: errorCatching convertUnsupportedMtl orig_mtl
 		ai_switch_shader: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_trace_set: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_standard_volume: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_atmosphere_volume: errorCatching convertUnsupportedMtl orig_mtl 
-		ai_fog: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_float: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_int: errorCatching convertUnsupportedMtl orig_mtl 
 		ai_aov_write_rgb: errorCatching convertUnsupportedMtl orig_mtl 
@@ -1219,7 +1526,11 @@ fn convertMaterial orig_mtl =(
 		ai_modulo: errorCatching convertAiModulo orig_mtl
 		ai_mix_rgba: errorCatching convertAiMixRGBA orig_mtl	
 		ai_color_correct: errorCatching convertAiColorCorrect orig_mtl
-
+		ai_shadow_matte: errorCatching convertAiShadowMatte orig_mtl 
+		ai_blackbody: errorCatching convertAiBlackbody orig_mtl
+		ai_flat: errorCatching convertAiFlat orig_mtl
+		ai_negate: errorCatching convertAiNegate orig_mtl
+		ai_toon: errorCatching convertAiToon orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1243,7 +1554,6 @@ fn convertMaterial orig_mtl =(
 		ai_log: errorCatching convertUnsupportedUtility orig_mtl
 		ai_matrix_transform: errorCatching convertUnsupportedUtility orig_mtl
 		ai_matrix_multiply_vector: errorCatching convertUnsupportedUtility orig_mtl
-		ai_negate: errorCatching convertUnsupportedUtility orig_mtl
 		ai_random: errorCatching convertUnsupportedUtility orig_mtl
 		ai_range: errorCatching convertUnsupportedUtility orig_mtl
 		ai_reciprocal: errorCatching convertUnsupportedUtility orig_mtl
@@ -1254,9 +1564,7 @@ fn convertMaterial orig_mtl =(
 		ai_state_int: errorCatching convertUnsupportedUtility orig_mtl
 		ai_state_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_complex_ior: errorCatching convertUnsupportedUtility orig_mtl
-		ai_shadow_matte: errorCatching convertUnsupportedUtility orig_mtl
 		ai_flakes: errorCatching convertUnsupportedUtility orig_mtl
-		ai_toon: errorCatching convertUnsupportedUtility orig_mtl
 		ai_noise: errorCatching convertUnsupportedUtility orig_mtl
 		ai_camera_projection: errorCatching convertUnsupportedUtility orig_mtl
 		ai_cell_noise: errorCatching convertUnsupportedUtility orig_mtl
@@ -1272,12 +1580,10 @@ fn convertMaterial orig_mtl =(
 		ai_user_data_float: errorCatching convertUnsupportedUtility orig_mtl
 		ai_user_data_int: errorCatching convertUnsupportedUtility orig_mtl
 		ai_user_data_string: errorCatching convertUnsupportedUtility orig_mtl
-		ai_blackbody: errorCatching convertUnsupportedUtility orig_mtl
 		ai_cache: errorCatching convertUnsupportedUtility orig_mtl
 		ai_clamp: errorCatching convertUnsupportedUtility orig_mtl
 		ai_curvature: errorCatching convertUnsupportedUtility orig_mtl
 		ai_facing_ratio: errorCatching convertUnsupportedUtility orig_mtl
-		ai_flat: errorCatching convertUnsupportedUtility orig_mtl
 		ai_motion_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_ray_switch_rgba: errorCatching convertUnsupportedUtility orig_mtl
 		ai_switch_rgba: errorCatching convertUnsupportedUtility orig_mtl
@@ -1301,25 +1607,16 @@ fn convertMaterial orig_mtl =(
 )
 
 fn convertEnvironment =(
-	rpr = Radeon_ProRender()
 
-	-- log to file 
-	start_log "3dsMax Environment" rpr
-
-	set_property rpr "backgroundOverride" true
-	set_property rpr "backgroundType" 0
-
-	set_property rpr "backgroundColor" backgroundColor
-	
-	if useEnvironmentMap do (
-		set_property rpr "useBackgroundMap" true
-		set_property rpr "backgroundMap" environmentMap
+	-- fog and atmosphere conversion
+	env = get_property renderers.current "atmosphere"
+	cls = classof env
+	case cls of (
+		ai_fog: errorCatching convertAiFog env 
+		ai_atmosphere_volume: errorCatching convertAiAtmosphereVolume env 
 	)
 
-	set_property rpr "backgroundIntensity" 1.0
-
-	-- log to file 
-	end_log "3dsMax Environment"
+	convert3dsMaxEnvironment()
 )
 
 fn cleanUpConversionData =(
@@ -1327,8 +1624,10 @@ fn cleanUpConversionData =(
 	delete (for elem in orig_lights where (superclassof elem == light) and isvalidnode elem collect elem) 
 
 	-- delete AOVs
-	re = maxOps.GetCurRenderElementMgr()
-    re.removeallrenderelements()
+	try (
+		re = maxOps.GetCurRenderElementMgr()
+	    re.removeallrenderelements()
+	) catch ()
 
 	orig_mtls=#()
 	new_mtls=#()
@@ -1350,6 +1649,9 @@ fn convertScene =(
 	start = timeStamp()
 
 	startConversion()
+
+	ai = Arnold()
+	if classof renderers.current != classof ai do renderers.current = ai
 
 	-- Environment conversion
 	convertEnvironment()
