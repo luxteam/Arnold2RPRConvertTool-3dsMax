@@ -92,7 +92,9 @@ fn end_log conv_obj =(
 	write_own_property_log msg
 )
 
+
 fn convertMaterial orig_mtl =()
+
 
 fn get_property value_mat value_attr =(
 	try (
@@ -231,6 +233,45 @@ fn getBBoxPoints obj = (
 	append bbPoints (Point3 bbMin.x bbMax.y bbMin.z)	-- bottom-left-front corner
 	
 	return bbPoints
+)
+
+
+fn convertTemperature temperature =(
+	temperature = temperature / 100
+
+	if temperature <= 66 then (
+		colorR = 255
+	) else (
+		colorR = temperature - 60
+		colorR = 329.698727446 * colorR ^ -0.1332047592
+		if colorR < 0 do colorR = 0
+		if colorR > 255 do colorR = 255
+	)
+
+	if temperature <= 66 then (
+		colorG = temperature
+		colorG = 99.4708025861 * log colorG - 161.1195681661
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	) else (
+		colorG = temperature - 60
+		colorG = 288.1221695283 * colorG ^ -0.0755148492
+		if colorG < 0 do colorG = 0
+		if colorG > 255 do colorG = 255
+	)
+
+	if temperature >= 66 then (
+		colorB = 255
+	) else if temperature <= 19 then (
+		colorB = 0
+	) else (
+		colorB = temperature - 10
+		colorB = 138.5177312231 * log colorB - 305.0447927307
+		if colorB < 0 do colorB = 0
+		if colorB > 255 do colorB = 255
+	)
+
+	(color colorR colorG colorB)
 )
 
 
@@ -584,21 +625,23 @@ fn convertAiShadowMatte origMtl =(
 			background_map = environmentMap
 		)
 		set_property r "BackgroundColorTexmap" background_map
+
 	)
 
 	copy_property r origMtl "ShadowColor" "shadow_color"
 	copy_property r origMtl "ShadowColorTexmap" "shadow_color_shader"
 	set_property r "ShadowAlphaMul" (1 - get_property origMtl "shadow_opacity")
 	
-
 	-- logging
 	end_log origMtl
 
 	r
 )
 
+
 fn convertAiBlackbody origMtl =(
 	local r = rpr_emissive_material()
+
 	r.name = origMtl.name + rprPostfixStr
 
 	-- log to file 
@@ -1045,6 +1088,7 @@ fn convertAiAO origMap = (
 	r
 )
 
+
 fn convertAiNegate origMap = (
 	local r = rpr_arithmetic()
 	r.name = origMap.name + rprPostfixStr
@@ -1078,6 +1122,7 @@ fn convertAiFlat origMap = (
 
 	r
 )
+
 
 fn convertAiMixRGBA origMap = (
 	local r = rpr_blend_value()
@@ -1202,6 +1247,7 @@ fn convertIesLight origLight = (
 	) else (
 		set_property r "colorMode" 1
 	)
+
 	ai_res_int = get_property origLight "intensity"
 	rpr_intensity = 0.0001 * ai_res_int ^ 3 + 0.0082 * ai_res_int ^ 2 + 0.3116 * ai_res_int + 0.7513
 	set_property r "intensity" rpr_intensity
@@ -1280,8 +1326,10 @@ fn convertPhysicalLight origLight = (
 	) else if light_type == 2 then ( -- spot
 		set_property r "lightType" 1
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
+
 		copy_property r origLight "OuterConeFalloff" "Cone_Angle"
 		set_property r "InnerConeAngle" (-0.986 * get_property origLight "penumbra_angle" + get_property origLight "Cone_Angle")
+
 	) else ( -- area
 		set_property r "lightType" 0
 		set_property r "LightIntensity" (get_property origLight "intensity" * 2.0 ^ get_property origLight "exposure")
@@ -1559,7 +1607,7 @@ fn convertMaterial orig_mtl =(
 )
 
 fn convertEnvironment =(
-	
+
 	-- fog and atmosphere conversion
 	env = get_property renderers.current "atmosphere"
 	cls = classof env
