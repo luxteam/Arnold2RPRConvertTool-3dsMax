@@ -956,7 +956,7 @@ fn convertAiSqrt origMap =(
 )
 
 fn convertAiExp origMap =(
-	local r = RPR_Arithmetic()
+	local r = rpr_color_value()
 	r.name = origMap.name + rprPostfixStr
 
 	-- log to file 
@@ -973,9 +973,7 @@ fn convertAiExp origMap =(
 		)
 	)
 
-	set_property r "operator" 0
-	set_property r "Color1" (color exp_color[1] exp_color[2] exp_color[3])
-	set_property r "Color2" (color 255 255 255)
+	set_property r "Color" (color exp_color[1] exp_color[2] exp_color[3])
 
 	-- logging
 	end_log origMap
@@ -1125,24 +1123,50 @@ fn convertAiReciprocal origMap = (
 	r
 )
 
-fn convertAiVectorToRGB origMap = (
+fn convertAiSign origMap = (
 	local r = rpr_color_value()
 	r.name = origMap.name + rprPostfixStr
 
 	-- log to file 
 	start_log origMap r
 
-	input_vector = get_property origMap "input"
-	vector_length = sqrt (pow input_vector[1] 2 + pow input_vector[2] 2 + pow input_vector[3] 2)
-	invert_length = 1 / vector_length
-	normalize_vector = point3 (input_vector[1] * invert_length) (input_vector[2] * invert_length) (input_vector[3] * invert_length)
-	remap_vector = point3 (remap_value normalize_vector[1] 1 0 255 0) (remap_value normalize_vector[2] 1 0 255 0) (remap_value normalize_vector[3] 1 0 255 0)
-	set_property r "Color" remap_vector
+	input_color = get_property origMap "input"
+	output_color = color 0 0 0
+	if input_color.red > 0 then output_color.red = 255
+	if input_color.green > 0 then output_color.green = 255
+	if input_color.blue > 0 then output_color.blue = 255
+	set_property r "Color" output_color
 
 	-- logging
 	end_log origMap
 
 	r
+)
+
+fn convertAiVectorToRGB origMap = (
+
+	if get_property origMap "mode" == 1 then (
+
+		local r = rpr_color_value()
+		r.name = origMap.name + rprPostfixStr
+
+		-- log to file 
+		start_log origMap r
+
+		input_vector = get_property origMap "input"
+		vector_length = sqrt (pow input_vector[1] 2 + pow input_vector[2] 2 + pow input_vector[3] 2)
+		invert_length = 1 / vector_length
+		normalize_vector = point3 (input_vector[1] * invert_length) (input_vector[2] * invert_length) (input_vector[3] * invert_length)
+		remap_vector = point3 (remap_value normalize_vector[1] 1 0 255 0) (remap_value normalize_vector[2] 1 0 255 0) (remap_value normalize_vector[3] 1 0 255 0)
+		set_property r "Color" remap_vector
+
+		-- logging
+		end_log origMap
+
+		r
+	) else (
+		return convertUnsupportedUtility(origMap)
+	)
 )
 
 fn convertAiFlat origMap = (
@@ -1571,6 +1595,7 @@ fn convertMaterial orig_mtl =(
 		ai_toon: errorCatching convertAiToon orig_mtl
 		ai_reciprocal: errorCatching convertAiReciprocal orig_mtl
 		ai_vector_to_rgb: errorCatching convertAiVectorToRGB orig_mtl
+		ai_sign: errorCatching convertAiSign orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1595,7 +1620,6 @@ fn convertMaterial orig_mtl =(
 		ai_matrix_multiply_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_random: errorCatching convertUnsupportedUtility orig_mtl
 		ai_range: errorCatching convertUnsupportedUtility orig_mtl
-		ai_sign: errorCatching convertUnsupportedUtility orig_mtl
 		ai_space_transform: errorCatching convertUnsupportedUtility orig_mtl
 		ai_trigo: errorCatching convertUnsupportedUtility orig_mtl
 		ai_state_float: errorCatching convertUnsupportedUtility orig_mtl
