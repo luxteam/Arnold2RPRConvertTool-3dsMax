@@ -1125,6 +1125,26 @@ fn convertAiReciprocal origMap = (
 	r
 )
 
+fn convertAiVectorToRGB origMap = (
+	local r = rpr_color_value()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	input_vector = get_property origMap "input"
+	vector_length = sqrt (pow input_vector[1] 2 + pow input_vector[2] 2 + pow input_vector[3] 2)
+	invert_length = 1 / vector_length
+	normalize_vector = point3 (input_vector[1] * invert_length) (input_vector[2] * invert_length) (input_vector[3] * invert_length)
+	remap_vector = point3 (remap_value normalize_vector[1] 1 0 255 0) (remap_value normalize_vector[2] 1 0 255 0) (remap_value normalize_vector[3] 1 0 255 0)
+	set_property r "Color" remap_vector
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
 fn convertAiFlat origMap = (
 	local r = rpr_color_value()
 	r.name = origMap.name + rprPostfixStr
@@ -1550,6 +1570,7 @@ fn convertMaterial orig_mtl =(
 		ai_negate: errorCatching convertAiNegate orig_mtl
 		ai_toon: errorCatching convertAiToon orig_mtl
 		ai_reciprocal: errorCatching convertAiReciprocal orig_mtl
+		ai_vector_to_rgb: errorCatching convertAiVectorToRGB orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1563,7 +1584,6 @@ fn convertMaterial orig_mtl =(
 		ai_rgba_to_float: errorCatching convertUnsupportedUtility orig_mtl
 		ai_rgb_to_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_shuffle: errorCatching convertUnsupportedUtility orig_mtl
-		ai_vector_to_rgb: errorCatching convertUnsupportedUtility orig_mtl
 		ai_physical_sky: errorCatching convertUnsupportedUtility orig_mtl
 		ai_compare: errorCatching convertUnsupportedUtility orig_mtl
 		ai_complement: errorCatching convertUnsupportedUtility orig_mtl
