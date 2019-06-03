@@ -1063,6 +1063,24 @@ fn convertAiNegate origMap = (
 	r
 )
 
+fn convertAiReciprocal origMap = (
+	local r = rpr_arithmetic()
+	r.name = origMap.name + rprPostfixStr
+
+	-- log to file 
+	start_log origMap r
+
+	set_property r "operator" 3
+	set_property r "Color1" (color 255 255 255)
+	copy_property r origMap "Color2" "input"
+	copy_property r origMap "color1texmap" "input_shader"
+
+	-- logging
+	end_log origMap
+
+	r
+)
+
 fn convertAiFlat origMap = (
 	local r = rpr_color_value()
 	r.name = origMap.name + rprPostfixStr
@@ -1483,6 +1501,7 @@ fn convertMaterial orig_mtl =(
 		ai_flat: errorCatching convertAiFlat orig_mtl
 		ai_negate: errorCatching convertAiNegate orig_mtl
 		ai_toon: errorCatching convertAiToon orig_mtl
+		ai_reciprocal: errorCatching convertAiReciprocal orig_mtl
 
 		--following utilies will be replaced with default rpr arithmetic node, will be supported later
 		ai_round_corners: errorCatching convertUnsupportedUtility orig_mtl
@@ -1508,7 +1527,6 @@ fn convertMaterial orig_mtl =(
 		ai_matrix_multiply_vector: errorCatching convertUnsupportedUtility orig_mtl
 		ai_random: errorCatching convertUnsupportedUtility orig_mtl
 		ai_range: errorCatching convertUnsupportedUtility orig_mtl
-		ai_reciprocal: errorCatching convertUnsupportedUtility orig_mtl
 		ai_sign: errorCatching convertUnsupportedUtility orig_mtl
 		ai_space_transform: errorCatching convertUnsupportedUtility orig_mtl
 		ai_trigo: errorCatching convertUnsupportedUtility orig_mtl
