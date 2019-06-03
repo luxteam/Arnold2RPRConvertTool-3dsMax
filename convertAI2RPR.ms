@@ -1144,12 +1144,32 @@ fn convertAiSign origMap = (
 )
 
 fn convertAiTrigo origMap = (
-	local r = rpr_color_value()
+	local r = rpr_arithmetic()
 	r.name = origMap.name + rprPostfixStr
 
 	-- log to file 
 	start_log origMap r
 
+	input_color = get_property origMap "input"
+	frequency = get_property origMap "frequency"
+	phase = get_property origMap "phase"
+	output_color = point3 (input_color.red * frequency + phase) (input_color.green * frequency + phase) (input_color.blue * frequency + phase)
+	print(output_color)
+	set_property r "Color1" output_color
+	operation = get_property origMap "function"
+	local operator = case operation of (
+		0: 5
+		1: 4
+		2: 6
+		3: 19
+		4: 20
+		5: 21
+		6: 0
+		7: 0
+		8: 0
+	)
+	set_property r "operator" operator
+	
 	-- logging
 	end_log origMap
 
