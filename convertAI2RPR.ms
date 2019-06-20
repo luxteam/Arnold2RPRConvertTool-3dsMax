@@ -1154,7 +1154,6 @@ fn convertAiTrigo origMap = (
 	frequency = get_property origMap "frequency"
 	phase = get_property origMap "phase"
 	output_color = point3 (input_color.red * frequency + phase) (input_color.green * frequency + phase) (input_color.blue * frequency + phase)
-	print(output_color)
 	set_property r "Color1" output_color
 	operation = get_property origMap "function"
 	local operator = case operation of (
@@ -1169,7 +1168,7 @@ fn convertAiTrigo origMap = (
 		8: 0
 	)
 	set_property r "operator" operator
-	
+
 	-- logging
 	end_log origMap
 
@@ -1271,8 +1270,7 @@ fn convertAiLayerRGBA origMap = (
 	second_material = true
 	for i=1 to 8 do (
 		if get_property origMap ("enable" + i as string) do (
-			input = get_property origMap ("input" + i as string)
-			if input != undefined do (
+			if get_property origMap ("input" + i as string) != undefined do (
 				if first_material then (
 					A_color = get_property origMap ("input" + i as string)
 					A_map = get_property origMap ("input" + i as string + "_shader")
@@ -1414,11 +1412,7 @@ fn convertAiColorCorrect origMap = (
 	copy_property arith_add origMap "color1Texmap" "add_shader"
 
 	set_property r "color1Texmap" arith_add
-	if get_property origMap "invert" then (
-		set_property r "color0Texmap" arith_invert
-	) else (
-		copy_property r origMap "color0Texmap" "input_shader"
-	)
+	copy_property r origMap "color0Texmap" "input_shader"
 	copy_property r origMap "Weight" "mask"
 	copy_property r origMap "weightTexmap" "mask_shader"
 
