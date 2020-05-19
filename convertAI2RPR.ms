@@ -1,26 +1,22 @@
-
 /*
-
-	Arnold to RadeonProRender Converter
-
-	History:
-	v.1.0 - first release
-	
-	Supported materials:
-	- 
-
-	Supported utilities:
-	- 
-
-	Supported lights:
-	- 
-
+# Copyright 2020 Advanced Micro Devices, Inc
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#    http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 */
 
 orig_mtls=#()
 new_mtls=#()
 orig_lights=#()
 new_lights=#()
+
+AI2RPR_CONVERTER_VERSION = "1.6.1"
 
 unsupportedPostfixStr = "_unsupported"
 rprPostfixStr = "_rpr"
@@ -51,27 +47,6 @@ fn write_converted_property_log rpr_obj conv_obj rpr_attr conv_attr =(
 		print("Exception:" + getCurrentException())
 		print("Stack trace: " + getCurrentExceptionStackTrace())
 	)
-)
-
-fn startConversion =(
-	msg = "START CONVERSION.\r\n"
-	msg += "Start time: " + (localtime as string) + "\r\n"
-
-	try (
-		log_obj = openFile log_file mode: "w"
-		format "%" (msg as string) to: log_obj
-		flush log_obj
-		close log_obj
-		free log_obj
-	) catch ()
-
-)
-
-fn finishConversion time =(
-	msg = "\n\nCONVERSION IS FINISHED.\r\n"
-	msg += "Total time: " + (time as string) + " seconds.\r\n"
-
-	write_own_property_log msg
 )
 
 fn start_log conv_obj rpr_obj =(
@@ -1867,10 +1842,10 @@ fn getObjsFromMaterial current_material  =(
 )
 
 fn convertScene =(
+
+	print("Conversion start! Converter version: " + AI2RPR_CONVERTER_VERSION)
 	
 	start = timeStamp()
-
-	startConversion()
 
 	ai = Arnold()
 	if classof renderers.current != classof ai do renderers.current = ai
@@ -1913,7 +1888,6 @@ fn convertScene =(
 	total_time = (end - start) / 1000.0
 	print("Scene conversion took " + total_time as string + " seconds.")
 	print("Converted: " + new_mtls.count as string + " materials, " + new_lights.count as string + " lights.")
-	finishConversion total_time
 
 	cleanUpConversionData()
 	
